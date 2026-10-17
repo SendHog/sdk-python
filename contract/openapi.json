@@ -1,0 +1,1382 @@
+{
+  "openapi": "3.1.0",
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "info": {
+    "title": "SendHog public API",
+    "version": "0.1.0",
+    "description": "SendHog public API and provider-shaped SDK subset. Own bearer authentication; not upstream wire/auth emulation. Sending remains operationally gated."
+  },
+  "servers": [
+    {
+      "url": "https://app.sendhog.com"
+    }
+  ],
+  "security": [
+    {
+      "sendhogKey": []
+    }
+  ],
+  "paths": {
+    "/v1/send": {
+      "post": {
+        "operationId": "send",
+        "summary": "Send inline subject/text/html or a published domain-scoped template ID/slug with variables. Requires reviewed sending access and normal dispatch safeguards.",
+        "x-availability": "gated",
+        "x-scope": "email.send",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured public API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/messages": {
+      "get": {
+        "operationId": "listMessages",
+        "summary": "List retained email metadata and text in the key's domain, with a stable forward cursor.",
+        "x-availability": "implemented",
+        "x-scope": "email.read",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured public API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "sent",
+                "received"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "/v1/messages/{id}": {
+      "get": {
+        "operationId": "getMessage",
+        "summary": "Read one retained message in the key's domain. A foreign or missing ID returns 404.",
+        "x-availability": "implemented",
+        "x-scope": "email.read",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Message"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured public API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "sendhogKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "SendHog domain API key"
+      }
+    },
+    "schemas": {
+      "ResolvedSendRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "subject"
+        ],
+        "allOf": [
+          {
+            "anyOf": [
+              {
+                "required": [
+                  "to"
+                ]
+              },
+              {
+                "required": [
+                  "cc"
+                ]
+              },
+              {
+                "required": [
+                  "bcc"
+                ]
+              }
+            ]
+          },
+          {
+            "anyOf": [
+              {
+                "required": [
+                  "text"
+                ]
+              },
+              {
+                "required": [
+                  "html"
+                ]
+              }
+            ]
+          }
+        ],
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/Mailbox"
+          },
+          "to": {
+            "$ref": "#/components/schemas/AddressOrList"
+          },
+          "cc": {
+            "$ref": "#/components/schemas/AddressOrList"
+          },
+          "bcc": {
+            "$ref": "#/components/schemas/AddressOrList"
+          },
+          "replyTo": {
+            "$ref": "#/components/schemas/ReplyTo"
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "html": {
+            "type": "string",
+            "maxLength": 100000
+          }
+        }
+      },
+      "ResolvedSendPythonRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "subject"
+        ],
+        "allOf": [
+          {
+            "anyOf": [
+              {
+                "required": [
+                  "to"
+                ]
+              },
+              {
+                "required": [
+                  "cc"
+                ]
+              },
+              {
+                "required": [
+                  "bcc"
+                ]
+              }
+            ]
+          },
+          {
+            "anyOf": [
+              {
+                "required": [
+                  "text"
+                ]
+              },
+              {
+                "required": [
+                  "html"
+                ]
+              }
+            ]
+          }
+        ],
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/Mailbox"
+          },
+          "to": {
+            "$ref": "#/components/schemas/AddressOrList"
+          },
+          "cc": {
+            "$ref": "#/components/schemas/AddressOrList"
+          },
+          "bcc": {
+            "$ref": "#/components/schemas/AddressOrList"
+          },
+          "reply_to": {
+            "$ref": "#/components/schemas/ReplyTo"
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "html": {
+            "type": "string",
+            "maxLength": 100000
+          }
+        }
+      },
+      "SendRequest": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/ResolvedSendRequest"
+          },
+          {
+            "$ref": "#/components/schemas/TemplateSendRequest"
+          }
+        ]
+      },
+      "SendPythonRequest": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/ResolvedSendPythonRequest"
+          },
+          {
+            "$ref": "#/components/schemas/TemplateSendPythonRequest"
+          }
+        ]
+      },
+      "TemplateVariables": {
+        "type": "object",
+        "maxProperties": 50,
+        "propertyNames": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_]{0,49}$"
+        },
+        "additionalProperties": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 2000
+            },
+            {
+              "type": "number",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "boolean"
+            }
+          ]
+        }
+      },
+      "TemplateReference": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "variables": {
+            "$ref": "#/components/schemas/TemplateVariables"
+          }
+        }
+      },
+      "TemplateSendRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "template"
+        ],
+        "allOf": [
+          {
+            "anyOf": [
+              {
+                "required": [
+                  "to"
+                ]
+              },
+              {
+                "required": [
+                  "cc"
+                ]
+              },
+              {
+                "required": [
+                  "bcc"
+                ]
+              }
+            ]
+          }
+        ],
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/Mailbox"
+          },
+          "to": {
+            "$ref": "#/components/schemas/AddressOrList"
+          },
+          "cc": {
+            "$ref": "#/components/schemas/AddressOrList"
+          },
+          "bcc": {
+            "$ref": "#/components/schemas/AddressOrList"
+          },
+          "replyTo": {
+            "$ref": "#/components/schemas/ReplyTo"
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "template": {
+            "$ref": "#/components/schemas/TemplateReference"
+          }
+        }
+      },
+      "TemplateSendPythonRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "template"
+        ],
+        "allOf": [
+          {
+            "anyOf": [
+              {
+                "required": [
+                  "to"
+                ]
+              },
+              {
+                "required": [
+                  "cc"
+                ]
+              },
+              {
+                "required": [
+                  "bcc"
+                ]
+              }
+            ]
+          }
+        ],
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/Mailbox"
+          },
+          "to": {
+            "$ref": "#/components/schemas/AddressOrList"
+          },
+          "cc": {
+            "$ref": "#/components/schemas/AddressOrList"
+          },
+          "bcc": {
+            "$ref": "#/components/schemas/AddressOrList"
+          },
+          "reply_to": {
+            "$ref": "#/components/schemas/ReplyTo"
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "template": {
+            "$ref": "#/components/schemas/TemplateReference"
+          }
+        }
+      },
+      "ReplyTo": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/Mailbox"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Mailbox"
+            },
+            "minItems": 1,
+            "maxItems": 10
+          }
+        ]
+      },
+      "Mailbox": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 320,
+        "pattern": "^(?:[^\\s<>@,\\r\\n]+@[^\\s<>@,\\r\\n]+\\.[^\\s<>@,\\r\\n]+|[^<>\\r\\n]+\\s<[^\\s<>@,]+@[^\\s<>@,]+\\.[^\\s<>@,]+>)$"
+      },
+      "AddressList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Mailbox"
+        },
+        "minItems": 1,
+        "maxItems": 50
+      },
+      "AddressOrList": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/Mailbox"
+          },
+          {
+            "$ref": "#/components/schemas/AddressList"
+          }
+        ]
+      },
+      "TextPart": {
+        "type": "object",
+        "required": [
+          "Data"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "Data": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "Charset": {
+            "const": "UTF-8"
+          }
+        }
+      },
+      "SesSendRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "FromEmailAddress",
+          "Destination",
+          "Content"
+        ],
+        "properties": {
+          "FromEmailAddress": {
+            "$ref": "#/components/schemas/Mailbox"
+          },
+          "Destination": {
+            "type": "object",
+            "additionalProperties": false,
+            "minProperties": 1,
+            "properties": {
+              "ToAddresses": {
+                "$ref": "#/components/schemas/AddressList"
+              },
+              "CcAddresses": {
+                "$ref": "#/components/schemas/AddressList"
+              },
+              "BccAddresses": {
+                "$ref": "#/components/schemas/AddressList"
+              }
+            }
+          },
+          "Content": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "Simple"
+            ],
+            "properties": {
+              "Simple": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "Subject",
+                  "Body"
+                ],
+                "properties": {
+                  "Subject": {
+                    "$ref": "#/components/schemas/TextPart"
+                  },
+                  "Body": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "minProperties": 1,
+                    "properties": {
+                      "Text": {
+                        "$ref": "#/components/schemas/TextPart"
+                      },
+                      "Html": {
+                        "$ref": "#/components/schemas/TextPart"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "ReplyToAddresses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Mailbox"
+            },
+            "maxItems": 10
+          }
+        }
+      },
+      "SendResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SesPythonSendResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "MessageId",
+          "ResponseMetadata"
+        ],
+        "properties": {
+          "MessageId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ResponseMetadata": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "HTTPStatusCode",
+              "RequestId",
+              "RetryAttempts"
+            ],
+            "properties": {
+              "HTTPStatusCode": {
+                "type": "integer"
+              },
+              "RequestId": {
+                "type": "string"
+              },
+              "RetryAttempts": {
+                "const": 0
+              }
+            }
+          }
+        }
+      },
+      "SesSendResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "MessageId",
+          "$metadata"
+        ],
+        "properties": {
+          "MessageId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "$metadata": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "httpStatusCode",
+              "attempts",
+              "totalRetryDelay"
+            ],
+            "properties": {
+              "httpStatusCode": {
+                "type": "integer"
+              },
+              "requestId": {
+                "type": "string"
+              },
+              "attempts": {
+                "const": 1
+              },
+              "totalRetryDelay": {
+                "const": 0
+              }
+            }
+          }
+        }
+      },
+      "PostmarkSendRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "From",
+          "To"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "TextBody"
+            ]
+          },
+          {
+            "required": [
+              "HtmlBody"
+            ]
+          }
+        ],
+        "properties": {
+          "From": {
+            "$ref": "#/components/schemas/Mailbox"
+          },
+          "To": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 16000
+          },
+          "Cc": {
+            "type": "string",
+            "maxLength": 16000
+          },
+          "Bcc": {
+            "type": "string",
+            "maxLength": 16000
+          },
+          "ReplyTo": {
+            "type": "string",
+            "maxLength": 3200
+          },
+          "Subject": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "TextBody": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "HtmlBody": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "MessageStream": {
+            "const": "outbound"
+          }
+        }
+      },
+      "PostmarkSendResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "To",
+          "SubmittedAt",
+          "MessageID",
+          "ErrorCode",
+          "Message"
+        ],
+        "properties": {
+          "To": {
+            "type": "string"
+          },
+          "SubmittedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "MessageID": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ErrorCode": {
+            "const": 0
+          },
+          "Message": {
+            "const": "OK"
+          }
+        }
+      },
+      "PostmarkPythonSendRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sender",
+          "to"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "text_body"
+            ]
+          },
+          {
+            "required": [
+              "html_body"
+            ]
+          }
+        ],
+        "properties": {
+          "sender": {
+            "$ref": "#/components/schemas/Mailbox"
+          },
+          "to": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 16000
+          },
+          "cc": {
+            "type": "string",
+            "maxLength": 16000
+          },
+          "bcc": {
+            "type": "string",
+            "maxLength": 16000
+          },
+          "reply_to": {
+            "type": "string",
+            "maxLength": 3200
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "text_body": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "html_body": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "message_stream": {
+            "const": "outbound"
+          }
+        }
+      },
+      "PostmarkPythonSendResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "to",
+          "submitted_at",
+          "message_id",
+          "error_code",
+          "message"
+        ],
+        "properties": {
+          "to": {
+            "type": "string"
+          },
+          "submitted_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "message_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "error_code": {
+            "const": 0
+          },
+          "message": {
+            "const": "OK"
+          }
+        }
+      },
+      "PlainResendSendRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "to",
+          "subject"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "text"
+            ]
+          },
+          {
+            "required": [
+              "html"
+            ]
+          }
+        ],
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/Mailbox"
+          },
+          "to": {
+            "$ref": "#/components/schemas/AddressOrList"
+          },
+          "cc": {
+            "$ref": "#/components/schemas/AddressOrList"
+          },
+          "bcc": {
+            "$ref": "#/components/schemas/AddressOrList"
+          },
+          "replyTo": {
+            "$ref": "#/components/schemas/AddressOrList"
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "html": {
+            "type": "string",
+            "maxLength": 100000
+          }
+        }
+      },
+      "PlainResendPythonSendRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "to",
+          "subject"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "text"
+            ]
+          },
+          {
+            "required": [
+              "html"
+            ]
+          }
+        ],
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/Mailbox"
+          },
+          "to": {
+            "$ref": "#/components/schemas/AddressOrList"
+          },
+          "cc": {
+            "$ref": "#/components/schemas/AddressOrList"
+          },
+          "bcc": {
+            "$ref": "#/components/schemas/AddressOrList"
+          },
+          "reply_to": {
+            "$ref": "#/components/schemas/AddressOrList"
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "html": {
+            "type": "string",
+            "maxLength": 100000
+          }
+        }
+      },
+      "ResendSendRequest": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PlainResendSendRequest"
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateSendRequest"
+              },
+              {
+                "required": [
+                  "to"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "ResendPythonSendRequest": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/PlainResendPythonSendRequest"
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateSendPythonRequest"
+              },
+              {
+                "required": [
+                  "to"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "ResendSendResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "SendGridAddress": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "email"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "pattern": "^[^<>\\r\\n]*$"
+          }
+        }
+      },
+      "SendGridRecipient": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/Mailbox"
+          },
+          {
+            "$ref": "#/components/schemas/SendGridAddress"
+          }
+        ]
+      },
+      "SendGridRecipients": {
+        "anyOf": [
+          {
+            "$ref": "#/components/schemas/SendGridRecipient"
+          },
+          {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/SendGridRecipient"
+            }
+          }
+        ]
+      },
+      "SendGridSendRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "to",
+          "subject"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "text"
+            ]
+          },
+          {
+            "required": [
+              "html"
+            ]
+          }
+        ],
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/SendGridRecipient"
+          },
+          "to": {
+            "$ref": "#/components/schemas/SendGridRecipients"
+          },
+          "cc": {
+            "$ref": "#/components/schemas/SendGridRecipients"
+          },
+          "bcc": {
+            "$ref": "#/components/schemas/SendGridRecipients"
+          },
+          "replyTo": {
+            "$ref": "#/components/schemas/SendGridRecipient"
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "html": {
+            "type": "string",
+            "maxLength": 100000
+          }
+        }
+      },
+      "SendGridPythonSendRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "personalizations",
+          "subject",
+          "content"
+        ],
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/SendGridAddress"
+          },
+          "personalizations": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "to"
+              ],
+              "properties": {
+                "to": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SendGridAddress"
+                  },
+                  "minItems": 1,
+                  "maxItems": 50
+                },
+                "cc": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SendGridAddress"
+                  },
+                  "maxItems": 50
+                },
+                "bcc": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SendGridAddress"
+                  },
+                  "maxItems": 50
+                }
+              }
+            }
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "reply_to": {
+            "$ref": "#/components/schemas/SendGridAddress"
+          },
+          "content": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "value"
+              ],
+              "properties": {
+                "type": {
+                  "enum": [
+                    "text/plain",
+                    "text/html"
+                  ]
+                },
+                "value": {
+                  "type": "string",
+                  "maxLength": 100000
+                }
+              }
+            }
+          }
+        }
+      },
+      "SendGridResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "statusCode",
+          "headers",
+          "body"
+        ],
+        "properties": {
+          "statusCode": {
+            "const": 202
+          },
+          "headers": {
+            "type": "object",
+            "required": [
+              "x-message-id"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            },
+            "properties": {
+              "x-message-id": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "body": {
+            "const": ""
+          }
+        }
+      },
+      "Message": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "domain_id",
+          "direction",
+          "from",
+          "to",
+          "subject",
+          "status",
+          "created_at",
+          "text"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "domain_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "direction": {
+            "enum": [
+              "sent",
+              "received"
+            ]
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subject": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "accepted",
+              "delivered",
+              "received",
+              "bounced",
+              "complained",
+              "failed"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "text": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "MessageList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "has_more",
+          "next_cursor"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ListMessagesQuery": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "after": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "direction": {
+            "enum": [
+              "sent",
+              "received"
+            ]
+          }
+        }
+      },
+      "ApiError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "message",
+              "request_id"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1
+              },
+              "message": {
+                "type": "string"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

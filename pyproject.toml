@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sendhog-sdk"
+version = "0.1.0"
+description = "Schema-generated SendHog SDK with provider-shaped application methods"
+requires-python = ">=3.11"
+dependencies = ["jsonschema>=4.23,<5"]
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{name = "SendHog"}]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Communications :: Email",
+]
+
+[project.urls]
+Homepage = "https://sendhog.com"
+Documentation = "https://sendhog.com/docs/sdks/"
+Source = "https://github.com/SendHog/sdk-python"
+Issues = "https://github.com/SendHog/sdk-python/issues"
+
+[tool.setuptools.packages.find]
+include = ["sendhog*"]
+
+[tool.setuptools.package-data]
+sendhog = ["py.typed", "_release.json"]

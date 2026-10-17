@@ -1,0 +1,3 @@
+include README.md LICENSE SOURCE.json
+recursive-include sendhog *.py py.typed
+exclude .npmrc .pypirc .env .env.*

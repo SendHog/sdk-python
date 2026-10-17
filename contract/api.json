@@ -1,0 +1,181 @@
+{
+  "name": "sendhog",
+  "version": "0.1.0",
+  "baseUrl": "https://app.sendhog.com",
+  "description": "SendHog public API and provider-shaped SDK subset. Own bearer authentication; not upstream wire/auth emulation. Sending remains operationally gated.",
+  "auth": {
+    "scheme": "bearer",
+    "header": "Authorization",
+    "keyPrefix": "sh_",
+    "scopes": ["email.send", "email.read"]
+  },
+  "methods": [
+    {
+      "name": "send",
+      "http": { "method": "POST", "path": "/v1/send" },
+      "request": "SendRequest",
+      "response": "SendResponse",
+      "scope": "email.send",
+      "summary": "Send inline subject/text/html or a published domain-scoped template ID/slug with variables. Requires reviewed sending access and normal dispatch safeguards.",
+      "availability": "gated"
+    },
+    {
+      "name": "listMessages",
+      "http": { "method": "GET", "path": "/v1/messages" },
+      "query": "ListMessagesQuery",
+      "response": "MessageList",
+      "scope": "email.read",
+      "summary": "List retained email metadata and text in the key's domain, with a stable forward cursor.",
+      "availability": "implemented"
+    },
+    {
+      "name": "getMessage",
+      "http": { "method": "GET", "path": "/v1/messages/{id}" },
+      "response": "Message",
+      "scope": "email.read",
+      "summary": "Read one retained message in the key's domain. A foreign or missing ID returns 404.",
+      "availability": "implemented"
+    }
+  ],
+  "providers": [
+    {
+      "id": "sendhog",
+      "name": "SendHog",
+      "jsClass": "SendHog",
+      "pythonClass": "SendHog",
+      "request": "SendRequest",
+      "pythonRequest": "SendPythonRequest",
+      "response": "SendResponse",
+      "jsMethod": "send",
+      "pythonMethod": "send",
+      "format": "native",
+      "source": "https://sendhog.com/docs/api/",
+      "note": "Default: send(message) with inline subject/text/html OR template:{id,variables,version?} referencing a published SendHog domain template. Returns id/created_at directly. Optional cc/bcc/replyTo (Python reply_to). messages.list/get reads retained mail. No command objects, React node payloads or data/error wrapper."
+    },
+    {
+      "id": "ses",
+      "name": "Amazon SES",
+      "jsClass": "SESv2Client",
+      "pythonClass": "SESv2Client",
+      "request": "SesSendRequest",
+      "response": "SesSendResponse",
+      "pythonResponse": "SesPythonSendResponse",
+      "jsMethod": "send",
+      "pythonMethod": "send_email",
+      "format": "ses",
+      "replyField": "ReplyToAddresses",
+      "source": "https://docs.aws.amazon.com/ses/latest/APIReference-V2/API_SendEmail.html",
+      "note": "SES v2 Simple only. Use SendHog setup and SendEmailCommand; no AWS authentication. messages.list/get is a SendHog extension."
+    },
+    {
+      "id": "postmark",
+      "name": "Postmark",
+      "jsClass": "ServerClient",
+      "pythonClass": "ServerClient",
+      "request": "PostmarkSendRequest",
+      "response": "PostmarkSendResponse",
+      "pythonRequest": "PostmarkPythonSendRequest",
+      "pythonResponse": "PostmarkPythonSendResponse",
+      "jsMethod": "sendEmail",
+      "pythonMethod": "outbound.send",
+      "format": "postmark",
+      "fields": {
+        "from": "From",
+        "to": "To",
+        "cc": "Cc",
+        "bcc": "Bcc",
+        "replyTo": "ReplyTo",
+        "subject": "Subject",
+        "text": "TextBody",
+        "html": "HtmlBody"
+      },
+      "pythonFields": {
+        "from": "sender",
+        "to": "to",
+        "cc": "cc",
+        "bcc": "bcc",
+        "replyTo": "reply_to",
+        "subject": "subject",
+        "text": "text_body",
+        "html": "html_body"
+      },
+      "source": "https://postmarkapp.com/developer/integration/official-libraries",
+      "note": "Postmark JS ServerClient and current async Python outbound.send subset. Only the outbound transactional stream; no templates, tracking or attachments."
+    },
+    {
+      "id": "resend",
+      "name": "Resend",
+      "jsClass": "Resend",
+      "pythonClass": "Resend",
+      "request": "ResendSendRequest",
+      "response": "ResendSendResponse",
+      "pythonRequest": "ResendPythonSendRequest",
+      "jsMethod": "emails.send",
+      "pythonMethod": "Emails.send",
+      "format": "resend",
+      "fields": {
+        "from": "from",
+        "to": "to",
+        "cc": "cc",
+        "bcc": "bcc",
+        "replyTo": "replyTo",
+        "subject": "subject",
+        "text": "text",
+        "html": "html"
+      },
+      "pythonFields": {
+        "from": "from",
+        "to": "to",
+        "cc": "cc",
+        "bcc": "bcc",
+        "replyTo": "reply_to",
+        "subject": "subject",
+        "text": "text",
+        "html": "html"
+      },
+      "source": "https://resend.com/docs/api-reference/emails/send-email",
+      "note": "JS returns data/error; Python returns the id dictionary. Supports inline html/text OR template:{id,variables,version?} with published SendHog IDs/slugs (not Resend-owned templates). No React rendering, scheduling, provider idempotency options or attachments."
+    },
+    {
+      "id": "sendgrid",
+      "name": "SendGrid",
+      "jsClass": "SendGridClient",
+      "pythonClass": "SendGridAPIClient",
+      "request": "SendGridSendRequest",
+      "pythonRequest": "SendGridPythonSendRequest",
+      "response": "SendGridResponse",
+      "jsMethod": "send",
+      "pythonMethod": "send",
+      "format": "sendgrid",
+      "fields": {
+        "from": "from",
+        "to": "to",
+        "cc": "cc",
+        "bcc": "bcc",
+        "replyTo": "replyTo",
+        "subject": "subject",
+        "text": "text",
+        "html": "html"
+      },
+      "source": "https://www.twilio.com/docs/sendgrid/api-reference/mail-send/mail-send",
+      "note": "JS simple mail helper subset; Python raw dictionary with one personalization/envelope. JS returns response/body pair; Python returns status_code, headers, body. No multiple personalizations, bulk, templates or helper-object emulation."
+    }
+  ],
+  "languages": [
+    { "id": "node", "label": "JavaScript", "highlight": "javascript" },
+    { "id": "typescript", "label": "TypeScript", "highlight": "typescript" },
+    { "id": "python", "label": "Python", "highlight": "python" },
+    { "id": "curl", "label": "cURL", "highlight": "bash" }
+  ],
+  "limits": {
+    "recipients": 50,
+    "bodyCharacters": 100000,
+    "automaticRetries": 0
+  },
+  "receiving": {
+    "js": "messages.list / messages.get",
+    "python": "messages.list / messages.get",
+    "kind": "SendHog extension",
+    "note": "Reads retained metadata/text only. No SES/SendGrid inbox API is invented; upstream inbound webhook, attachment and MIME parity are not claimed."
+  }
+}

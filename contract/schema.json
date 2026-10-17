@@ -1,0 +1,469 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sendhog.com/api/schema.json",
+  "title": "SendHog public SDK models",
+  "$defs": {
+    "ResolvedSendRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "subject"],
+      "allOf": [
+        {
+          "anyOf": [
+            { "required": ["to"] },
+            { "required": ["cc"] },
+            { "required": ["bcc"] }
+          ]
+        },
+        { "anyOf": [{ "required": ["text"] }, { "required": ["html"] }] }
+      ],
+      "properties": {
+        "from": { "$ref": "#/$defs/Mailbox" },
+        "to": { "$ref": "#/$defs/AddressOrList" },
+        "cc": { "$ref": "#/$defs/AddressOrList" },
+        "bcc": { "$ref": "#/$defs/AddressOrList" },
+        "replyTo": { "$ref": "#/$defs/ReplyTo" },
+        "subject": { "type": "string", "maxLength": 100000 },
+        "text": { "type": "string", "maxLength": 100000 },
+        "html": { "type": "string", "maxLength": 100000 }
+      }
+    },
+    "ResolvedSendPythonRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "subject"],
+      "allOf": [
+        {
+          "anyOf": [
+            { "required": ["to"] },
+            { "required": ["cc"] },
+            { "required": ["bcc"] }
+          ]
+        },
+        { "anyOf": [{ "required": ["text"] }, { "required": ["html"] }] }
+      ],
+      "properties": {
+        "from": { "$ref": "#/$defs/Mailbox" },
+        "to": { "$ref": "#/$defs/AddressOrList" },
+        "cc": { "$ref": "#/$defs/AddressOrList" },
+        "bcc": { "$ref": "#/$defs/AddressOrList" },
+        "reply_to": { "$ref": "#/$defs/ReplyTo" },
+        "subject": { "type": "string", "maxLength": 100000 },
+        "text": { "type": "string", "maxLength": 100000 },
+        "html": { "type": "string", "maxLength": 100000 }
+      }
+    },
+    "SendRequest": {"anyOf":[{"$ref":"#/$defs/ResolvedSendRequest"},{"$ref":"#/$defs/TemplateSendRequest"}]},
+    "SendPythonRequest": {"anyOf":[{"$ref":"#/$defs/ResolvedSendPythonRequest"},{"$ref":"#/$defs/TemplateSendPythonRequest"}]},
+    "TemplateVariables": {"type":"object","maxProperties":50,"propertyNames":{"pattern":"^[A-Za-z][A-Za-z0-9_]{0,49}$"},"additionalProperties":{"anyOf":[{"type":"string","maxLength":2000},{"type":"number","minimum":-9007199254740991,"maximum":9007199254740991},{"type":"boolean"}]}},
+    "TemplateReference": {"type":"object","additionalProperties":false,"required":["id"],"properties":{"id":{"type":"string","pattern":"^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$"},"version":{"type":"integer","minimum":1},"variables":{"$ref":"#/$defs/TemplateVariables"}}},
+    "TemplateSendRequest": {"type":"object","additionalProperties":false,"required":["from","template"],"allOf":[{"anyOf":[{"required":["to"]},{"required":["cc"]},{"required":["bcc"]}]}],"properties":{"from":{"$ref":"#/$defs/Mailbox"},"to":{"$ref":"#/$defs/AddressOrList"},"cc":{"$ref":"#/$defs/AddressOrList"},"bcc":{"$ref":"#/$defs/AddressOrList"},"replyTo":{"$ref":"#/$defs/ReplyTo"},"subject":{"type":"string","maxLength":1000},"template":{"$ref":"#/$defs/TemplateReference"}}},
+    "TemplateSendPythonRequest": {"type":"object","additionalProperties":false,"required":["from","template"],"allOf":[{"anyOf":[{"required":["to"]},{"required":["cc"]},{"required":["bcc"]}]}],"properties":{"from":{"$ref":"#/$defs/Mailbox"},"to":{"$ref":"#/$defs/AddressOrList"},"cc":{"$ref":"#/$defs/AddressOrList"},"bcc":{"$ref":"#/$defs/AddressOrList"},"reply_to":{"$ref":"#/$defs/ReplyTo"},"subject":{"type":"string","maxLength":1000},"template":{"$ref":"#/$defs/TemplateReference"}}},
+    "ReplyTo": {
+      "anyOf": [
+        { "$ref": "#/$defs/Mailbox" },
+        {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Mailbox" },
+          "minItems": 1,
+          "maxItems": 10
+        }
+      ]
+    },
+    "Mailbox": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 320,
+      "pattern": "^(?:[^\\s<>@,\\r\\n]+@[^\\s<>@,\\r\\n]+\\.[^\\s<>@,\\r\\n]+|[^<>\\r\\n]+\\s<[^\\s<>@,]+@[^\\s<>@,]+\\.[^\\s<>@,]+>)$"
+    },
+    "AddressList": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Mailbox" },
+      "minItems": 1,
+      "maxItems": 50
+    },
+    "AddressOrList": {
+      "anyOf": [
+        { "$ref": "#/$defs/Mailbox" },
+        { "$ref": "#/$defs/AddressList" }
+      ]
+    },
+    "TextPart": {
+      "type": "object",
+      "required": ["Data"],
+      "additionalProperties": false,
+      "properties": {
+        "Data": { "type": "string", "maxLength": 100000 },
+        "Charset": { "const": "UTF-8" }
+      }
+    },
+    "SesSendRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["FromEmailAddress", "Destination", "Content"],
+      "properties": {
+        "FromEmailAddress": { "$ref": "#/$defs/Mailbox" },
+        "Destination": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "ToAddresses": { "$ref": "#/$defs/AddressList" },
+            "CcAddresses": { "$ref": "#/$defs/AddressList" },
+            "BccAddresses": { "$ref": "#/$defs/AddressList" }
+          }
+        },
+        "Content": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["Simple"],
+          "properties": {
+            "Simple": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["Subject", "Body"],
+              "properties": {
+                "Subject": { "$ref": "#/$defs/TextPart" },
+                "Body": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "minProperties": 1,
+                  "properties": {
+                    "Text": { "$ref": "#/$defs/TextPart" },
+                    "Html": { "$ref": "#/$defs/TextPart" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "ReplyToAddresses": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Mailbox" },
+          "maxItems": 10
+        }
+      }
+    },
+    "SendResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "created_at"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "SesPythonSendResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["MessageId", "ResponseMetadata"],
+      "properties": {
+        "MessageId": { "type": "string", "minLength": 1 },
+        "ResponseMetadata": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["HTTPStatusCode", "RequestId", "RetryAttempts"],
+          "properties": {
+            "HTTPStatusCode": { "type": "integer" },
+            "RequestId": { "type": "string" },
+            "RetryAttempts": { "const": 0 }
+          }
+        }
+      }
+    },
+    "SesSendResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["MessageId", "$metadata"],
+      "properties": {
+        "MessageId": { "type": "string", "minLength": 1 },
+        "$metadata": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["httpStatusCode", "attempts", "totalRetryDelay"],
+          "properties": {
+            "httpStatusCode": { "type": "integer" },
+            "requestId": { "type": "string" },
+            "attempts": { "const": 1 },
+            "totalRetryDelay": { "const": 0 }
+          }
+        }
+      }
+    },
+    "PostmarkSendRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["From", "To"],
+      "anyOf": [{ "required": ["TextBody"] }, { "required": ["HtmlBody"] }],
+      "properties": {
+        "From": { "$ref": "#/$defs/Mailbox" },
+        "To": { "type": "string", "minLength": 3, "maxLength": 16000 },
+        "Cc": { "type": "string", "maxLength": 16000 },
+        "Bcc": { "type": "string", "maxLength": 16000 },
+        "ReplyTo": { "type": "string", "maxLength": 3200 },
+        "Subject": { "type": "string", "maxLength": 2000 },
+        "TextBody": { "type": "string", "maxLength": 100000 },
+        "HtmlBody": { "type": "string", "maxLength": 100000 },
+        "MessageStream": { "const": "outbound" }
+      }
+    },
+    "PostmarkSendResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["To", "SubmittedAt", "MessageID", "ErrorCode", "Message"],
+      "properties": {
+        "To": { "type": "string" },
+        "SubmittedAt": { "type": "string", "format": "date-time" },
+        "MessageID": { "type": "string", "minLength": 1 },
+        "ErrorCode": { "const": 0 },
+        "Message": { "const": "OK" }
+      }
+    },
+    "PostmarkPythonSendRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sender", "to"],
+      "anyOf": [{ "required": ["text_body"] }, { "required": ["html_body"] }],
+      "properties": {
+        "sender": { "$ref": "#/$defs/Mailbox" },
+        "to": { "type": "string", "minLength": 3, "maxLength": 16000 },
+        "cc": { "type": "string", "maxLength": 16000 },
+        "bcc": { "type": "string", "maxLength": 16000 },
+        "reply_to": { "type": "string", "maxLength": 3200 },
+        "subject": { "type": "string", "maxLength": 2000 },
+        "text_body": { "type": "string", "maxLength": 100000 },
+        "html_body": { "type": "string", "maxLength": 100000 },
+        "message_stream": { "const": "outbound" }
+      }
+    },
+    "PostmarkPythonSendResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["to", "submitted_at", "message_id", "error_code", "message"],
+      "properties": {
+        "to": { "type": "string" },
+        "submitted_at": { "type": "string", "format": "date-time" },
+        "message_id": { "type": "string", "minLength": 1 },
+        "error_code": { "const": 0 },
+        "message": { "const": "OK" }
+      }
+    },
+    "PlainResendSendRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "subject"],
+      "anyOf": [{ "required": ["text"] }, { "required": ["html"] }],
+      "properties": {
+        "from": { "$ref": "#/$defs/Mailbox" },
+        "to": { "$ref": "#/$defs/AddressOrList" },
+        "cc": { "$ref": "#/$defs/AddressOrList" },
+        "bcc": { "$ref": "#/$defs/AddressOrList" },
+        "replyTo": { "$ref": "#/$defs/AddressOrList" },
+        "subject": { "type": "string", "maxLength": 2000 },
+        "text": { "type": "string", "maxLength": 100000 },
+        "html": { "type": "string", "maxLength": 100000 }
+      }
+    },
+    "PlainResendPythonSendRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "subject"],
+      "anyOf": [{ "required": ["text"] }, { "required": ["html"] }],
+      "properties": {
+        "from": { "$ref": "#/$defs/Mailbox" },
+        "to": { "$ref": "#/$defs/AddressOrList" },
+        "cc": { "$ref": "#/$defs/AddressOrList" },
+        "bcc": { "$ref": "#/$defs/AddressOrList" },
+        "reply_to": { "$ref": "#/$defs/AddressOrList" },
+        "subject": { "type": "string", "maxLength": 2000 },
+        "text": { "type": "string", "maxLength": 100000 },
+        "html": { "type": "string", "maxLength": 100000 }
+      }
+    },
+    "ResendSendRequest": {"anyOf":[{"$ref":"#/$defs/PlainResendSendRequest"},{"allOf":[{"$ref":"#/$defs/TemplateSendRequest"},{"required":["to"]}]}]},
+    "ResendPythonSendRequest": {"anyOf":[{"$ref":"#/$defs/PlainResendPythonSendRequest"},{"allOf":[{"$ref":"#/$defs/TemplateSendPythonRequest"},{"required":["to"]}]}]},
+    "ResendSendResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": { "id": { "type": "string", "minLength": 1 } }
+    },
+    "SendGridAddress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["email"],
+      "properties": {
+        "email": { "type": "string", "format": "email", "maxLength": 254 },
+        "name": {
+          "type": "string",
+          "maxLength": 100,
+          "pattern": "^[^<>\\r\\n]*$"
+        }
+      }
+    },
+    "SendGridRecipient": {
+      "anyOf": [
+        { "$ref": "#/$defs/Mailbox" },
+        { "$ref": "#/$defs/SendGridAddress" }
+      ]
+    },
+    "SendGridRecipients": {
+      "anyOf": [
+        { "$ref": "#/$defs/SendGridRecipient" },
+        {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": { "$ref": "#/$defs/SendGridRecipient" }
+        }
+      ]
+    },
+    "SendGridSendRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "subject"],
+      "anyOf": [{ "required": ["text"] }, { "required": ["html"] }],
+      "properties": {
+        "from": { "$ref": "#/$defs/SendGridRecipient" },
+        "to": { "$ref": "#/$defs/SendGridRecipients" },
+        "cc": { "$ref": "#/$defs/SendGridRecipients" },
+        "bcc": { "$ref": "#/$defs/SendGridRecipients" },
+        "replyTo": { "$ref": "#/$defs/SendGridRecipient" },
+        "subject": { "type": "string", "maxLength": 2000 },
+        "text": { "type": "string", "maxLength": 100000 },
+        "html": { "type": "string", "maxLength": 100000 }
+      }
+    },
+    "SendGridPythonSendRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "personalizations", "subject", "content"],
+      "properties": {
+        "from": { "$ref": "#/$defs/SendGridAddress" },
+        "personalizations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["to"],
+            "properties": {
+              "to": {
+                "type": "array",
+                "items": { "$ref": "#/$defs/SendGridAddress" },
+                "minItems": 1,
+                "maxItems": 50
+              },
+              "cc": {
+                "type": "array",
+                "items": { "$ref": "#/$defs/SendGridAddress" },
+                "maxItems": 50
+              },
+              "bcc": {
+                "type": "array",
+                "items": { "$ref": "#/$defs/SendGridAddress" },
+                "maxItems": 50
+              }
+            }
+          }
+        },
+        "subject": { "type": "string", "maxLength": 2000 },
+        "reply_to": { "$ref": "#/$defs/SendGridAddress" },
+        "content": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "value"],
+            "properties": {
+              "type": { "enum": ["text/plain", "text/html"] },
+              "value": { "type": "string", "maxLength": 100000 }
+            }
+          }
+        }
+      }
+    },
+    "SendGridResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["statusCode", "headers", "body"],
+      "properties": {
+        "statusCode": { "const": 202 },
+        "headers": {
+          "type": "object",
+          "required": ["x-message-id"],
+          "additionalProperties": { "type": "string" },
+          "properties": { "x-message-id": { "type": "string", "minLength": 1 } }
+        },
+        "body": { "const": "" }
+      }
+    },
+    "Message": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "domain_id",
+        "direction",
+        "from",
+        "to",
+        "subject",
+        "status",
+        "created_at",
+        "text"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "domain_id": { "type": "string", "minLength": 1 },
+        "direction": { "enum": ["sent", "received"] },
+        "from": { "type": "string" },
+        "to": { "type": "array", "items": { "type": "string" } },
+        "subject": { "type": "string" },
+        "status": {
+          "enum": ["accepted", "delivered", "received", "bounced", "complained", "failed"]
+        },
+        "created_at": { "type": "string", "format": "date-time" },
+        "text": { "type": ["string", "null"] }
+      }
+    },
+    "MessageList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["data", "has_more", "next_cursor"],
+      "properties": {
+        "data": { "type": "array", "items": { "$ref": "#/$defs/Message" } },
+        "has_more": { "type": "boolean" },
+        "next_cursor": { "type": ["string", "null"] }
+      }
+    },
+    "ListMessagesQuery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "limit": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "after": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "direction": { "enum": ["sent", "received"] }
+      }
+    },
+    "ApiError": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["error"],
+      "properties": {
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "message", "request_id"],
+          "properties": {
+            "code": { "type": "string", "minLength": 1 },
+            "message": { "type": "string" },
+            "request_id": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    }
+  }
+}

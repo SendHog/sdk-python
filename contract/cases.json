@@ -1,0 +1,94 @@
+{
+  "sendResponse": {
+    "id": "msg_fixture",
+    "created_at": "2026-10-16T00:00:00Z"
+  },
+  "canonical": {
+    "from": "sender@example.com",
+    "to": ["recipient@example.net"],
+    "subject": "Hello from SendHog",
+    "text": "Hello from your application."
+  },
+  "providers": {
+    "sendhog": {
+      "node": {
+        "from": "sender@example.com",
+        "to": "recipient@example.net",
+        "subject": "Hello from SendHog",
+        "text": "Hello from your application."
+      },
+      "python": {
+        "from": "sender@example.com",
+        "to": "recipient@example.net",
+        "subject": "Hello from SendHog",
+        "text": "Hello from your application."
+      }
+    },
+    "ses": {
+      "node": {
+        "FromEmailAddress": "sender@example.com",
+        "Destination": { "ToAddresses": ["recipient@example.net"] },
+        "Content": {
+          "Simple": {
+            "Subject": { "Data": "Hello from SendHog" },
+            "Body": { "Text": { "Data": "Hello from your application." } }
+          }
+        }
+      },
+      "python": {
+        "FromEmailAddress": "sender@example.com",
+        "Destination": { "ToAddresses": ["recipient@example.net"] },
+        "Content": {
+          "Simple": {
+            "Subject": { "Data": "Hello from SendHog" },
+            "Body": { "Text": { "Data": "Hello from your application." } }
+          }
+        }
+      }
+    },
+    "postmark": {
+      "node": {
+        "From": "sender@example.com",
+        "To": "recipient@example.net",
+        "Subject": "Hello from SendHog",
+        "TextBody": "Hello from your application."
+      },
+      "python": {
+        "sender": "sender@example.com",
+        "to": "recipient@example.net",
+        "subject": "Hello from SendHog",
+        "text_body": "Hello from your application."
+      }
+    },
+    "resend": {
+      "node": {
+        "from": "sender@example.com",
+        "to": ["recipient@example.net"],
+        "subject": "Hello from SendHog",
+        "text": "Hello from your application."
+      },
+      "python": {
+        "from": "sender@example.com",
+        "to": ["recipient@example.net"],
+        "subject": "Hello from SendHog",
+        "text": "Hello from your application."
+      }
+    },
+    "sendgrid": {
+      "node": {
+        "from": "sender@example.com",
+        "to": "recipient@example.net",
+        "subject": "Hello from SendHog",
+        "text": "Hello from your application."
+      },
+      "python": {
+        "from": { "email": "sender@example.com" },
+        "personalizations": [{ "to": [{ "email": "recipient@example.net" }] }],
+        "subject": "Hello from SendHog",
+        "content": [
+          { "type": "text/plain", "value": "Hello from your application." }
+        ]
+      }
+    }
+  }
+}

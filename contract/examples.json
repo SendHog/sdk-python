@@ -1,0 +1,102 @@
+{
+  "sendhog": {
+    "send": {
+      "node": "import { SendHog } from '@sendhog/sdk';\n\nconst client = new SendHog(process.env.SENDHOG_API_KEY ?? '');\n\nconst { id } = await client.send({\n  \"from\": \"sender@example.com\",\n  \"to\": \"recipient@example.net\",\n  \"subject\": \"Hello from SendHog\",\n  \"text\": \"Hello from your application.\"\n});\nconsole.log(id);",
+      "typescript": "import { SendHog } from '@sendhog/sdk';\n\nconst client = new SendHog(process.env.SENDHOG_API_KEY ?? '');\n\nconst { id } = await client.send({\n  \"from\": \"sender@example.com\",\n  \"to\": \"recipient@example.net\",\n  \"subject\": \"Hello from SendHog\",\n  \"text\": \"Hello from your application.\"\n});\nconsole.log(id);",
+      "python": "import os\nfrom sendhog import SendHog\n\nclient = SendHog(os.environ['SENDHOG_API_KEY'])\n\nresult = client.send({\n    \"from\": \"sender@example.com\",\n    \"to\": \"recipient@example.net\",\n    \"subject\": \"Hello from SendHog\",\n    \"text\": \"Hello from your application.\"\n})\nprint(result['id'])",
+      "curl": "# Native SendHog HTTP; the SDK translates the SendHog call above.\ncurl 'https://app.sendhog.com/v1/send' \\\n  -H \"Authorization: Bearer $SENDHOG_API_KEY\" \\\n  -H 'Content-Type: application/json' \\\n  --data '{\n  \"from\": \"sender@example.com\",\n  \"to\": [\n    \"recipient@example.net\"\n  ],\n  \"subject\": \"Hello from SendHog\",\n  \"text\": \"Hello from your application.\"\n}'"
+    },
+    "receive": {
+      "node": "import { SendHog } from '@sendhog/sdk';\n\nconst client = new SendHog(process.env.SENDHOG_API_KEY ?? '');\n\n// SendHog extension shared by all provider variants.\n// Requires a key with email.read scope.\nconst page = await client.messages.list({ direction: 'received', limit: 20 });\nif (page.data.length) {\n  const message = await client.messages.get(page.data[0].id);\n  console.log(message.subject, message.text);\n}",
+      "typescript": "import { SendHog } from '@sendhog/sdk';\n\nconst client = new SendHog(process.env.SENDHOG_API_KEY ?? '');\n\n// SendHog extension shared by all provider variants.\n// Requires a key with email.read scope.\nconst page = await client.messages.list({ direction: 'received', limit: 20 });\nif (page.data.length) {\n  const message = await client.messages.get(page.data[0].id);\n  console.log(message.subject, message.text);\n}",
+      "python": "import os\nfrom sendhog import SendHog\n\nclient = SendHog(os.environ['SENDHOG_API_KEY'])\n\n# SendHog extension; requires email.read scope.\npage = client.messages.list(direction='received', limit=20)\nif page['data']:\n    message = client.messages.get(page['data'][0]['id'])\n    print(message['subject'], message['text'])",
+      "curl": "curl 'https://app.sendhog.com/v1/messages?direction=received&limit=20' \\\n  -H \"Authorization: Bearer $SENDHOG_API_KEY\""
+    },
+    "install": {
+      "node": "npm install ./sdks/javascript",
+      "typescript": "npm install ./sdks/javascript",
+      "python": "python -m pip install ./sdks/python",
+      "curl": "No SDK installation required."
+    }
+  },
+  "ses": {
+    "send": {
+      "node": "import { SESv2Client, SendEmailCommand } from '@sendhog/sdk/ses';\n\nconst apiKey = process.env.SENDHOG_API_KEY;\nif (!apiKey) throw new Error('Set SENDHOG_API_KEY on your server.');\nconst client = new SESv2Client({ apiKey });\n\nconst result = await client.send(new SendEmailCommand({\n  \"FromEmailAddress\": \"sender@example.com\",\n  \"Destination\": {\n    \"ToAddresses\": [\n      \"recipient@example.net\"\n    ]\n  },\n  \"Content\": {\n    \"Simple\": {\n      \"Subject\": {\n        \"Data\": \"Hello from SendHog\"\n      },\n      \"Body\": {\n        \"Text\": {\n          \"Data\": \"Hello from your application.\"\n        }\n      }\n    }\n  }\n}));\nconsole.log(result.MessageId);",
+      "typescript": "import { SESv2Client, SendEmailCommand } from '@sendhog/sdk/ses';\n\nconst apiKey = process.env.SENDHOG_API_KEY;\nif (!apiKey) throw new Error('Set SENDHOG_API_KEY on your server.');\nconst client = new SESv2Client({ apiKey });\n\nconst result = await client.send(new SendEmailCommand({\n  \"FromEmailAddress\": \"sender@example.com\",\n  \"Destination\": {\n    \"ToAddresses\": [\n      \"recipient@example.net\"\n    ]\n  },\n  \"Content\": {\n    \"Simple\": {\n      \"Subject\": {\n        \"Data\": \"Hello from SendHog\"\n      },\n      \"Body\": {\n        \"Text\": {\n          \"Data\": \"Hello from your application.\"\n        }\n      }\n    }\n  }\n}));\nconsole.log(result.MessageId);",
+      "python": "import os\nfrom sendhog.ses import SESv2Client\n\nclient = SESv2Client(os.environ['SENDHOG_API_KEY'])\n\nresult = client.send_email(**{\n    \"FromEmailAddress\": \"sender@example.com\",\n    \"Destination\": {\n        \"ToAddresses\": [\n            \"recipient@example.net\"\n        ]\n    },\n    \"Content\": {\n        \"Simple\": {\n            \"Subject\": {\n                \"Data\": \"Hello from SendHog\"\n            },\n            \"Body\": {\n                \"Text\": {\n                    \"Data\": \"Hello from your application.\"\n                }\n            }\n        }\n    }\n})\nprint(result['MessageId'])",
+      "curl": "# Native SendHog HTTP; the SDK translates the Amazon SES call above.\ncurl 'https://app.sendhog.com/v1/send' \\\n  -H \"Authorization: Bearer $SENDHOG_API_KEY\" \\\n  -H 'Content-Type: application/json' \\\n  --data '{\n  \"from\": \"sender@example.com\",\n  \"to\": [\n    \"recipient@example.net\"\n  ],\n  \"subject\": \"Hello from SendHog\",\n  \"text\": \"Hello from your application.\"\n}'"
+    },
+    "receive": {
+      "node": "import { SESv2Client } from '@sendhog/sdk/ses';\n\nconst apiKey = process.env.SENDHOG_API_KEY;\nif (!apiKey) throw new Error('Set SENDHOG_API_KEY on your server.');\nconst client = new SESv2Client({ apiKey });\n\n// SendHog extension shared by all provider variants.\n// Requires a key with email.read scope.\nconst page = await client.messages.list({ direction: 'received', limit: 20 });\nif (page.data.length) {\n  const message = await client.messages.get(page.data[0].id);\n  console.log(message.subject, message.text);\n}",
+      "typescript": "import { SESv2Client } from '@sendhog/sdk/ses';\n\nconst apiKey = process.env.SENDHOG_API_KEY;\nif (!apiKey) throw new Error('Set SENDHOG_API_KEY on your server.');\nconst client = new SESv2Client({ apiKey });\n\n// SendHog extension shared by all provider variants.\n// Requires a key with email.read scope.\nconst page = await client.messages.list({ direction: 'received', limit: 20 });\nif (page.data.length) {\n  const message = await client.messages.get(page.data[0].id);\n  console.log(message.subject, message.text);\n}",
+      "python": "import os\nfrom sendhog.ses import SESv2Client\n\nclient = SESv2Client(os.environ['SENDHOG_API_KEY'])\n\n# SendHog extension; requires email.read scope.\npage = client.messages.list(direction='received', limit=20)\nif page['data']:\n    message = client.messages.get(page['data'][0]['id'])\n    print(message['subject'], message['text'])",
+      "curl": "curl 'https://app.sendhog.com/v1/messages?direction=received&limit=20' \\\n  -H \"Authorization: Bearer $SENDHOG_API_KEY\""
+    },
+    "install": {
+      "node": "npm install ./sdks/javascript",
+      "typescript": "npm install ./sdks/javascript",
+      "python": "python -m pip install ./sdks/python",
+      "curl": "No SDK installation required."
+    }
+  },
+  "postmark": {
+    "send": {
+      "node": "import { ServerClient } from '@sendhog/sdk/postmark';\n\nconst apiKey = process.env.SENDHOG_API_KEY;\nif (!apiKey) throw new Error('Set SENDHOG_API_KEY on your server.');\nconst client = new ServerClient({ apiKey });\n\nconst result = await client.sendEmail({\n  \"From\": \"sender@example.com\",\n  \"To\": \"recipient@example.net\",\n  \"Subject\": \"Hello from SendHog\",\n  \"TextBody\": \"Hello from your application.\"\n});\nconsole.log(result.MessageID);",
+      "typescript": "import { ServerClient } from '@sendhog/sdk/postmark';\n\nconst apiKey = process.env.SENDHOG_API_KEY;\nif (!apiKey) throw new Error('Set SENDHOG_API_KEY on your server.');\nconst client = new ServerClient({ apiKey });\n\nconst result = await client.sendEmail({\n  \"From\": \"sender@example.com\",\n  \"To\": \"recipient@example.net\",\n  \"Subject\": \"Hello from SendHog\",\n  \"TextBody\": \"Hello from your application.\"\n});\nconsole.log(result.MessageID);",
+      "python": "import os\nfrom sendhog.postmark import ServerClient\n\nimport asyncio\n\nasync def main():\n    async with ServerClient(os.environ['SENDHOG_API_KEY']) as client:\n        result = await client.outbound.send({\n            \"sender\": \"sender@example.com\",\n            \"to\": \"recipient@example.net\",\n            \"subject\": \"Hello from SendHog\",\n            \"text_body\": \"Hello from your application.\"\n        })\n        print(result.message_id)\n\nasyncio.run(main())",
+      "curl": "# Native SendHog HTTP; the SDK translates the Postmark call above.\ncurl 'https://app.sendhog.com/v1/send' \\\n  -H \"Authorization: Bearer $SENDHOG_API_KEY\" \\\n  -H 'Content-Type: application/json' \\\n  --data '{\n  \"from\": \"sender@example.com\",\n  \"to\": [\n    \"recipient@example.net\"\n  ],\n  \"subject\": \"Hello from SendHog\",\n  \"text\": \"Hello from your application.\"\n}'"
+    },
+    "receive": {
+      "node": "import { ServerClient } from '@sendhog/sdk/postmark';\n\nconst apiKey = process.env.SENDHOG_API_KEY;\nif (!apiKey) throw new Error('Set SENDHOG_API_KEY on your server.');\nconst client = new ServerClient({ apiKey });\n\n// SendHog extension shared by all provider variants.\n// Requires a key with email.read scope.\nconst page = await client.messages.list({ direction: 'received', limit: 20 });\nif (page.data.length) {\n  const message = await client.messages.get(page.data[0].id);\n  console.log(message.subject, message.text);\n}",
+      "typescript": "import { ServerClient } from '@sendhog/sdk/postmark';\n\nconst apiKey = process.env.SENDHOG_API_KEY;\nif (!apiKey) throw new Error('Set SENDHOG_API_KEY on your server.');\nconst client = new ServerClient({ apiKey });\n\n// SendHog extension shared by all provider variants.\n// Requires a key with email.read scope.\nconst page = await client.messages.list({ direction: 'received', limit: 20 });\nif (page.data.length) {\n  const message = await client.messages.get(page.data[0].id);\n  console.log(message.subject, message.text);\n}",
+      "python": "import os\nfrom sendhog.postmark import ServerClient\n\nclient = ServerClient(os.environ['SENDHOG_API_KEY'])\n\n# SendHog extension; requires email.read scope.\npage = client.messages.list(direction='received', limit=20)\nif page['data']:\n    message = client.messages.get(page['data'][0]['id'])\n    print(message['subject'], message['text'])",
+      "curl": "curl 'https://app.sendhog.com/v1/messages?direction=received&limit=20' \\\n  -H \"Authorization: Bearer $SENDHOG_API_KEY\""
+    },
+    "install": {
+      "node": "npm install ./sdks/javascript",
+      "typescript": "npm install ./sdks/javascript",
+      "python": "python -m pip install ./sdks/python",
+      "curl": "No SDK installation required."
+    }
+  },
+  "resend": {
+    "send": {
+      "node": "import { Resend } from '@sendhog/sdk/resend';\n\nconst apiKey = process.env.SENDHOG_API_KEY;\nif (!apiKey) throw new Error('Set SENDHOG_API_KEY on your server.');\nconst client = new Resend({ apiKey });\n\nconst { data, error } = await client.emails.send({\n  \"from\": \"sender@example.com\",\n  \"to\": [\n    \"recipient@example.net\"\n  ],\n  \"subject\": \"Hello from SendHog\",\n  \"text\": \"Hello from your application.\"\n});\nif (error) throw new Error(error.message);\nconsole.log(data.id);",
+      "typescript": "import { Resend } from '@sendhog/sdk/resend';\n\nconst apiKey = process.env.SENDHOG_API_KEY;\nif (!apiKey) throw new Error('Set SENDHOG_API_KEY on your server.');\nconst client = new Resend({ apiKey });\n\nconst { data, error } = await client.emails.send({\n  \"from\": \"sender@example.com\",\n  \"to\": [\n    \"recipient@example.net\"\n  ],\n  \"subject\": \"Hello from SendHog\",\n  \"text\": \"Hello from your application.\"\n});\nif (error) throw new Error(error.message);\nconsole.log(data.id);",
+      "python": "import os\nfrom sendhog.resend import Resend\n\nclient = Resend(os.environ['SENDHOG_API_KEY'])\n\nresult = client.Emails.send({\n    \"from\": \"sender@example.com\",\n    \"to\": [\n        \"recipient@example.net\"\n    ],\n    \"subject\": \"Hello from SendHog\",\n    \"text\": \"Hello from your application.\"\n})\nprint(result['id'])",
+      "curl": "# Native SendHog HTTP; the SDK translates the Resend call above.\ncurl 'https://app.sendhog.com/v1/send' \\\n  -H \"Authorization: Bearer $SENDHOG_API_KEY\" \\\n  -H 'Content-Type: application/json' \\\n  --data '{\n  \"from\": \"sender@example.com\",\n  \"to\": [\n    \"recipient@example.net\"\n  ],\n  \"subject\": \"Hello from SendHog\",\n  \"text\": \"Hello from your application.\"\n}'"
+    },
+    "receive": {
+      "node": "import { Resend } from '@sendhog/sdk/resend';\n\nconst apiKey = process.env.SENDHOG_API_KEY;\nif (!apiKey) throw new Error('Set SENDHOG_API_KEY on your server.');\nconst client = new Resend({ apiKey });\n\n// SendHog extension shared by all provider variants.\n// Requires a key with email.read scope.\nconst page = await client.messages.list({ direction: 'received', limit: 20 });\nif (page.data.length) {\n  const message = await client.messages.get(page.data[0].id);\n  console.log(message.subject, message.text);\n}",
+      "typescript": "import { Resend } from '@sendhog/sdk/resend';\n\nconst apiKey = process.env.SENDHOG_API_KEY;\nif (!apiKey) throw new Error('Set SENDHOG_API_KEY on your server.');\nconst client = new Resend({ apiKey });\n\n// SendHog extension shared by all provider variants.\n// Requires a key with email.read scope.\nconst page = await client.messages.list({ direction: 'received', limit: 20 });\nif (page.data.length) {\n  const message = await client.messages.get(page.data[0].id);\n  console.log(message.subject, message.text);\n}",
+      "python": "import os\nfrom sendhog.resend import Resend\n\nclient = Resend(os.environ['SENDHOG_API_KEY'])\n\n# SendHog extension; requires email.read scope.\npage = client.messages.list(direction='received', limit=20)\nif page['data']:\n    message = client.messages.get(page['data'][0]['id'])\n    print(message['subject'], message['text'])",
+      "curl": "curl 'https://app.sendhog.com/v1/messages?direction=received&limit=20' \\\n  -H \"Authorization: Bearer $SENDHOG_API_KEY\""
+    },
+    "install": {
+      "node": "npm install ./sdks/javascript",
+      "typescript": "npm install ./sdks/javascript",
+      "python": "python -m pip install ./sdks/python",
+      "curl": "No SDK installation required."
+    }
+  },
+  "sendgrid": {
+    "send": {
+      "node": "import { SendGridClient } from '@sendhog/sdk/sendgrid';\n\nconst apiKey = process.env.SENDHOG_API_KEY;\nif (!apiKey) throw new Error('Set SENDHOG_API_KEY on your server.');\nconst client = new SendGridClient({ apiKey });\n\nconst [response] = await client.send({\n  \"from\": \"sender@example.com\",\n  \"to\": \"recipient@example.net\",\n  \"subject\": \"Hello from SendHog\",\n  \"text\": \"Hello from your application.\"\n});\nconsole.log(response.headers['x-message-id']);",
+      "typescript": "import { SendGridClient } from '@sendhog/sdk/sendgrid';\n\nconst apiKey = process.env.SENDHOG_API_KEY;\nif (!apiKey) throw new Error('Set SENDHOG_API_KEY on your server.');\nconst client = new SendGridClient({ apiKey });\n\nconst [response] = await client.send({\n  \"from\": \"sender@example.com\",\n  \"to\": \"recipient@example.net\",\n  \"subject\": \"Hello from SendHog\",\n  \"text\": \"Hello from your application.\"\n});\nconsole.log(response.headers['x-message-id']);",
+      "python": "import os\nfrom sendhog.sendgrid import SendGridAPIClient\n\nclient = SendGridAPIClient(os.environ['SENDHOG_API_KEY'])\n\nresponse = client.send({\n    \"from\": {\n        \"email\": \"sender@example.com\"\n    },\n    \"personalizations\": [\n        {\n            \"to\": [\n                {\n                    \"email\": \"recipient@example.net\"\n                }\n            ]\n        }\n    ],\n    \"subject\": \"Hello from SendHog\",\n    \"content\": [\n        {\n            \"type\": \"text/plain\",\n            \"value\": \"Hello from your application.\"\n        }\n    ]\n})\nprint(response.headers['x-message-id'])",
+      "curl": "# Native SendHog HTTP; the SDK translates the SendGrid call above.\ncurl 'https://app.sendhog.com/v1/send' \\\n  -H \"Authorization: Bearer $SENDHOG_API_KEY\" \\\n  -H 'Content-Type: application/json' \\\n  --data '{\n  \"from\": \"sender@example.com\",\n  \"to\": [\n    \"recipient@example.net\"\n  ],\n  \"subject\": \"Hello from SendHog\",\n  \"text\": \"Hello from your application.\"\n}'"
+    },
+    "receive": {
+      "node": "import { SendGridClient } from '@sendhog/sdk/sendgrid';\n\nconst apiKey = process.env.SENDHOG_API_KEY;\nif (!apiKey) throw new Error('Set SENDHOG_API_KEY on your server.');\nconst client = new SendGridClient({ apiKey });\n\n// SendHog extension shared by all provider variants.\n// Requires a key with email.read scope.\nconst page = await client.messages.list({ direction: 'received', limit: 20 });\nif (page.data.length) {\n  const message = await client.messages.get(page.data[0].id);\n  console.log(message.subject, message.text);\n}",
+      "typescript": "import { SendGridClient } from '@sendhog/sdk/sendgrid';\n\nconst apiKey = process.env.SENDHOG_API_KEY;\nif (!apiKey) throw new Error('Set SENDHOG_API_KEY on your server.');\nconst client = new SendGridClient({ apiKey });\n\n// SendHog extension shared by all provider variants.\n// Requires a key with email.read scope.\nconst page = await client.messages.list({ direction: 'received', limit: 20 });\nif (page.data.length) {\n  const message = await client.messages.get(page.data[0].id);\n  console.log(message.subject, message.text);\n}",
+      "python": "import os\nfrom sendhog.sendgrid import SendGridAPIClient\n\nclient = SendGridAPIClient(os.environ['SENDHOG_API_KEY'])\n\n# SendHog extension; requires email.read scope.\npage = client.messages.list(direction='received', limit=20)\nif page['data']:\n    message = client.messages.get(page['data'][0]['id'])\n    print(message['subject'], message['text'])",
+      "curl": "curl 'https://app.sendhog.com/v1/messages?direction=received&limit=20' \\\n  -H \"Authorization: Bearer $SENDHOG_API_KEY\""
+    },
+    "install": {
+      "node": "npm install ./sdks/javascript",
+      "typescript": "npm install ./sdks/javascript",
+      "python": "python -m pip install ./sdks/python",
+      "curl": "No SDK installation required."
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "sourceSha256": "ec08bc88ab20096bc1769bc71ec6d4bd3cfa7ba4e8158ac8ccd849e2e4d4b0b0",
+  "version": "0.1.0",
+  "languages": [
+    "node",
+    "typescript",
+    "python",
+    "curl"
+  ],
+  "providers": [
+    "sendhog",
+    "ses",
+    "postmark",
+    "resend",
+    "sendgrid"
+  ],
+  "operations": [
+    "send",
+    "listMessages",
+    "getMessage"
+  ]
+}
