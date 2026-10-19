@@ -140,6 +140,21 @@ class _Messages:
         if params is not None and kwargs: raise ValidationError('Pass a query dictionary or keyword arguments, not both')
         return self._client._request('listMessages', params=params if params is not None else kwargs)[0]
     def get(self, message_id): return self._client._request('getMessage', params={'id': message_id})[0]
+    def events(self, message_id, params=None): return self._client._request('messageEvents', params={**(params or {}), 'id': message_id})[0]
+
+class _Bulk:
+    def __init__(self, client): self._client = client
+    def get(self, bulk_id): return self._client._request('getBulk', params={'id': bulk_id})[0]
+
+class _Webhooks:
+    def __init__(self, client): self._client = client
+    def create(self, params): return self._client._request('createWebhook', params)[0]
+    def list(self): return self._client._request('listWebhooks')[0]
+    def delete(self, webhook_id): return self._client._request('deleteWebhook', params={'id': webhook_id})[0]
+    @staticmethod
+    def verify(raw_body, headers, secret):
+        from .webhooks import verify_webhook
+        return verify_webhook(raw_body, headers, secret)
 
 class BaseClient:
     def __init__(self, api_key, *, origin=None, transport=None):
@@ -151,12 +166,14 @@ class BaseClient:
         self._api_key = api_key
         self._transport = transport or self._http
         self.messages = _Messages(self)
+        self.bulk = _Bulk(self)
+        self.webhooks = _Webhooks(self)
 
     @staticmethod
     def _http(method, url, headers, payload):
         request = urllib.request.Request(url, data=None if payload is None else json.dumps(payload).encode(), headers=headers, method=method)
         try:
-            response = urllib.request.build_opener(_NoRedirect).open(request, timeout=30)
+            response = urllib.request.build_opener(_NoRedirect).open(request, timeout=120 if urllib.parse.urlsplit(url).path == '/v1/send/bulk' else 30)
         except urllib.error.HTTPError as error:
             response = error
         with response:
@@ -166,21 +183,27 @@ class BaseClient:
             except (ValueError, UnicodeError): raise ProtocolError('Response is not valid public API JSON') from None
             return response.status, dict(response.headers), data
 
-    def _request(self, operation, payload=None, params=None):
+    def _request(self, operation, payload=None, params=None, *, idempotency_key=None):
         definition = next(m for m in MANIFEST['methods'] if m['name'] == operation)
         params = {} if params is None else params
+        if not isinstance(params, dict): raise ValidationError('Use a query dictionary')
         path = definition['http']['path']
         if '{id}' in path:
             message_id = params.get('id')
             if not isinstance(message_id, str) or not message_id or len(message_id) > 256: raise ValidationError('Invalid message ID')
             path = path.replace('{id}', urllib.parse.quote(message_id, safe=''))
         if 'query' in definition:
-            validate(definition['query'], params)
-            if params: path += '?' + urllib.parse.urlencode(params)
+            query = {k: v for k, v in params.items() if k != 'id'}
+            validate(definition['query'], query)
+            if query: path += '?' + urllib.parse.urlencode(query)
         if 'request' in definition:
             validate(definition['request'], payload)
             if definition['request'] == 'SendRequest': check_recipients(payload)
-        status, headers, data = self._transport(definition['http']['method'], self._origin + path, {'Authorization': 'Bearer ' + self._api_key, 'Content-Type': 'application/json'}, payload)
+        request_headers = {'Authorization': 'Bearer ' + self._api_key, 'Content-Type': 'application/json'}
+        if idempotency_key is not None:
+            validate('SendOptions', {'idempotencyKey': idempotency_key})
+            request_headers['Idempotency-Key'] = idempotency_key
+        status, headers, data = self._transport(definition['http']['method'], self._origin + path, request_headers, payload)
         if not 200 <= status < 300:
             try: validate('ApiError', data)
             except ValidationError: raise ProtocolError('Error response does not match the public schema') from None
@@ -190,7 +213,7 @@ class BaseClient:
         normalized_headers = {k.lower(): v for k, v in headers.items()}
         return data, {'status': status, 'request_id': normalized_headers.get('x-request-id'), 'headers': headers}
 
-    def _send_variant(self, provider, payload):
+    def _send_variant(self, provider, payload, *, idempotency_key=None):
         request = normalize(provider, payload)
-        result, metadata = self._request('send', request)
+        result, metadata = self._request('send', request, idempotency_key=idempotency_key)
         return translate(provider, payload, result, metadata)

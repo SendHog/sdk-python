@@ -3,7 +3,7 @@
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
     "title": "SendHog public API",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "SendHog public API and provider-shaped SDK subset. Own bearer authentication; not upstream wire/auth emulation. Sending remains operationally gated."
   },
   "servers": [
@@ -17,10 +17,263 @@
     }
   ],
   "paths": {
+    "/v1/send/bulk": {
+      "post": {
+        "operationId": "sendBulk",
+        "summary": "Send one personalized email per recipient using a published template. Waits for SES acceptance, returns ordered individual outcomes. Idempotency-Key required; never automatically retries email.",
+        "x-availability": "implemented",
+        "x-scope": "email.send",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkSendResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured public API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkSendRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/send/bulk/{id}": {
+      "get": {
+        "operationId": "getBulk",
+        "summary": "Inspect outcomes from a bulk send in the key domain without resending.",
+        "x-availability": "implemented",
+        "x-scope": "email.send",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkSendResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured public API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ]
+      }
+    },
+    "/v1/messages/{id}/events": {
+      "get": {
+        "operationId": "messageEvents",
+        "summary": "Read retained email events for an owned message, newest first. Events are retained for 30 days.",
+        "x-availability": "implemented",
+        "x-scope": "email.read",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured public API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 256
+            }
+          }
+        ]
+      }
+    },
+    "/v1/webhooks": {
+      "post": {
+        "operationId": "createWebhook",
+        "summary": "Register a public HTTPS endpoint for signed email events. Returns the signing secret once.",
+        "x-availability": "implemented",
+        "x-scope": "webhooks.manage",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedWebhook"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured public API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWebhookRequest"
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listWebhooks",
+        "summary": "List domain-owned webhooks without secrets.",
+        "x-availability": "implemented",
+        "x-scope": "webhooks.manage",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured public API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhooks/{id}": {
+      "delete": {
+        "operationId": "deleteWebhook",
+        "summary": "Delete a domain-owned webhook and cancel pending deliveries.",
+        "x-availability": "implemented",
+        "x-scope": "webhooks.manage",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedWebhook"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured public API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ]
+      }
+    },
     "/v1/send": {
       "post": {
         "operationId": "send",
-        "summary": "Send inline subject/text/html or a published domain-scoped template ID/slug with variables. Requires reviewed sending access and normal dispatch safeguards.",
+        "summary": "Send inline subject/text/html or a published domain-scoped template ID/slug with variables. Verified domains receive automatic sending approval; account limits, disable controls and normal dispatch safeguards apply.",
         "x-availability": "gated",
         "x-scope": "email.send",
         "responses": {
@@ -172,6 +425,365 @@
       }
     },
     "schemas": {
+      "SendOptions": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "idempotencyKey": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._:-]{1,128}$"
+          }
+        }
+      },
+      "BulkRecipient": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "to"
+        ],
+        "properties": {
+          "to": {
+            "$ref": "#/components/schemas/Mailbox"
+          },
+          "variables": {
+            "$ref": "#/components/schemas/TemplateVariables"
+          }
+        }
+      },
+      "BulkSendRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "template",
+          "recipients"
+        ],
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/Mailbox"
+          },
+          "replyTo": {
+            "$ref": "#/components/schemas/ReplyTo"
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "template": {
+            "$ref": "#/components/schemas/TemplateReference"
+          },
+          "recipients": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/BulkRecipient"
+            }
+          }
+        }
+      },
+      "BulkSendPythonRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "template",
+          "recipients"
+        ],
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/Mailbox"
+          },
+          "reply_to": {
+            "$ref": "#/components/schemas/ReplyTo"
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "template": {
+            "$ref": "#/components/schemas/TemplateReference"
+          },
+          "recipients": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/BulkRecipient"
+            }
+          }
+        }
+      },
+      "BulkResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "to",
+          "status"
+        ],
+        "properties": {
+          "to": {
+            "$ref": "#/components/schemas/Mailbox"
+          },
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "accepted",
+              "rejected",
+              "unknown",
+              "not_sent"
+            ]
+          },
+          "error": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "BulkSendResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "results"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "results": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/BulkResult"
+            }
+          }
+        }
+      },
+      "EmailEventType": {
+        "enum": [
+          "email.sent",
+          "email.delivered",
+          "email.bounced",
+          "email.complained",
+          "email.rejected",
+          "email.delayed",
+          "email.render_failed",
+          "email.opened",
+          "email.clicked",
+          "email.subscription_changed"
+        ]
+      },
+      "EmailEvent": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "type",
+          "created_at",
+          "data"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/EmailEventType"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "message_id",
+              "provider_id",
+              "recipients",
+              "details"
+            ],
+            "properties": {
+              "message_id": {
+                "type": "string"
+              },
+              "provider_id": {
+                "type": "string"
+              },
+              "recipients": {
+                "type": "array",
+                "maxItems": 50,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "details": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      },
+      "EventQuery": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "after": {
+            "type": "string",
+            "maxLength": 256
+          }
+        }
+      },
+      "EventList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data",
+          "has_more",
+          "next_cursor"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmailEvent"
+            }
+          },
+          "has_more": {
+            "type": "boolean"
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "CreateWebhookRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "url",
+          "events"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 2048
+          },
+          "events": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/components/schemas/EmailEventType"
+            }
+          }
+        }
+      },
+      "Webhook": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "url",
+          "events",
+          "enabled",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmailEventType"
+            }
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreatedWebhook": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "webhook",
+          "secret"
+        ],
+        "properties": {
+          "webhook": {
+            "$ref": "#/components/schemas/Webhook"
+          },
+          "secret": {
+            "type": "string"
+          }
+        }
+      },
+      "WebhookList": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Webhook"
+            }
+          }
+        }
+      },
+      "DeletedWebhook": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "deleted"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "deleted": {
+            "const": true
+          }
+        }
+      },
       "ResolvedSendRequest": {
         "type": "object",
         "additionalProperties": false,

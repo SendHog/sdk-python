@@ -4,18 +4,18 @@ Send transactional email through [SendHog](https://sendhog.com) with a domain-sc
 API key. Native API plus SES-, Postmark-, Resend- and SendGrid-shaped migration
 clients, all using SendHog authentication and the same transport.
 
-Python 3.11+. MIT licensed. Registry publication status is recorded in
-[GitHub Releases](https://github.com/SendHog/sdk-python/releases); do not assume a
-version exists on PyPI until it is listed there as published.
+Python 3.11+. MIT licensed. Published on
+[PyPI as `sendhog-sdk`](https://pypi.org/project/sendhog-sdk/), starting with0.1.0.
+Release artifacts and provenance: [GitHub Releases](https://github.com/SendHog/sdk-python/releases).
 
 ## Install
 
 ```sh
-pip install sendhog-sdk
+python -m pip install sendhog-sdk
 ```
 
-Before the first registry release, install the public source instead:
-`pip install git+https://github.com/SendHog/sdk-python.git`.
+No local SendHog checkout or Git installation is needed. All migration clients
+below are included in this package; Python imports use `sendhog`.
 
 ## Send
 
@@ -97,3 +97,20 @@ CI runs on pushes/PRs. The manual `publish.yml` workflow publishes a matching `v
 tag with PyPI trusted publishing in the `pypi` GitHub environment. An authorized PyPI
 account must first configure the pending/existing publisher for `sendhog-sdk`,
 `SendHog/sdk-python`, workflow `publish.yml`, environment `pypi`. No token is stored here.
+# Bulk sending and email events (0.2.0)
+
+`client.send_bulk({'from':sender,'template':{'id':'welcome'},'recipients':[
+{'to':recipient,'variables':{'name':'Alex'}}]},idempotency_key='stable-operation')`
+sends one separate personalized email per recipient (up to50), waiting for SES
+acceptance. Inspect ordered individual outcomes with `client.bulk.get(id)`.
+Replays never resend/resume a batch. Single `client.send` accepts the same
+`idempotency_key` keyword option.
+
+`client.messages.events(id,{'limit':20})` reads30-day SES event history with
+email.read. `client.webhooks.create({'url':url,'events':['email.delivered']})`,
+`.list()` and `.delete(id)` require webhooks.manage. Creation returns webhook
+metadata and a one-time secret; keep it securely. Verify exact raw bodies using
+`client.webhooks.verify(body,headers,secret)` or `sendhog.verify_webhook(...)`.
+
+Email acceptance is not recipient delivery. No customer email queue flag exists.
+See https://sendhog.com/docs/templates/ and https://sendhog.com/docs/webhooks/.

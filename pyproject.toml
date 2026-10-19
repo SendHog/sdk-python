@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sendhog-sdk"
-version = "0.1.0"
+version = "0.2.0"
 description = "Schema-generated SendHog SDK with provider-shaped application methods"
 requires-python = ">=3.11"
 dependencies = ["jsonschema>=4.23,<5"]

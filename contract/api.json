@@ -1,22 +1,28 @@
 {
   "name": "sendhog",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "baseUrl": "https://app.sendhog.com",
   "description": "SendHog public API and provider-shaped SDK subset. Own bearer authentication; not upstream wire/auth emulation. Sending remains operationally gated.",
   "auth": {
     "scheme": "bearer",
     "header": "Authorization",
     "keyPrefix": "sh_",
-    "scopes": ["email.send", "email.read"]
+    "scopes": ["email.send", "email.read", "webhooks.manage"]
   },
   "methods": [
+    {"name":"sendBulk","http":{"method":"POST","path":"/v1/send/bulk"},"request":"BulkSendRequest","response":"BulkSendResponse","scope":"email.send","summary":"Send one personalized email per recipient using a published template. Waits for SES acceptance, returns ordered individual outcomes. Idempotency-Key required; never automatically retries email.","availability":"implemented"},
+    {"name":"getBulk","http":{"method":"GET","path":"/v1/send/bulk/{id}"},"response":"BulkSendResponse","scope":"email.send","summary":"Inspect outcomes from a bulk send in the key domain without resending.","availability":"implemented"},
+    {"name":"messageEvents","http":{"method":"GET","path":"/v1/messages/{id}/events"},"query":"EventQuery","response":"EventList","scope":"email.read","summary":"Read retained email events for an owned message, newest first. Events are retained for 30 days.","availability":"implemented"},
+    {"name":"createWebhook","http":{"method":"POST","path":"/v1/webhooks"},"request":"CreateWebhookRequest","response":"CreatedWebhook","scope":"webhooks.manage","summary":"Register a public HTTPS endpoint for signed email events. Returns the signing secret once.","availability":"implemented"},
+    {"name":"listWebhooks","http":{"method":"GET","path":"/v1/webhooks"},"response":"WebhookList","scope":"webhooks.manage","summary":"List domain-owned webhooks without secrets.","availability":"implemented"},
+    {"name":"deleteWebhook","http":{"method":"DELETE","path":"/v1/webhooks/{id}"},"response":"DeletedWebhook","scope":"webhooks.manage","summary":"Delete a domain-owned webhook and cancel pending deliveries.","availability":"implemented"},
     {
       "name": "send",
       "http": { "method": "POST", "path": "/v1/send" },
       "request": "SendRequest",
       "response": "SendResponse",
       "scope": "email.send",
-      "summary": "Send inline subject/text/html or a published domain-scoped template ID/slug with variables. Requires reviewed sending access and normal dispatch safeguards.",
+      "summary": "Send inline subject/text/html or a published domain-scoped template ID/slug with variables. Verified domains receive automatic sending approval; account limits, disable controls and normal dispatch safeguards apply.",
       "availability": "gated"
     },
     {

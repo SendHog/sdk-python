@@ -13,9 +13,9 @@
       "curl": "curl 'https://app.sendhog.com/v1/messages?direction=received&limit=20' \\\n  -H \"Authorization: Bearer $SENDHOG_API_KEY\""
     },
     "install": {
-      "node": "npm install ./sdks/javascript",
-      "typescript": "npm install ./sdks/javascript",
-      "python": "python -m pip install ./sdks/python",
+      "node": "npm install @sendhog/sdk",
+      "typescript": "npm install @sendhog/sdk",
+      "python": "python -m pip install sendhog-sdk",
       "curl": "No SDK installation required."
     }
   },
@@ -33,9 +33,9 @@
       "curl": "curl 'https://app.sendhog.com/v1/messages?direction=received&limit=20' \\\n  -H \"Authorization: Bearer $SENDHOG_API_KEY\""
     },
     "install": {
-      "node": "npm install ./sdks/javascript",
-      "typescript": "npm install ./sdks/javascript",
-      "python": "python -m pip install ./sdks/python",
+      "node": "npm install @sendhog/sdk",
+      "typescript": "npm install @sendhog/sdk",
+      "python": "python -m pip install sendhog-sdk",
       "curl": "No SDK installation required."
     }
   },
@@ -53,9 +53,9 @@
       "curl": "curl 'https://app.sendhog.com/v1/messages?direction=received&limit=20' \\\n  -H \"Authorization: Bearer $SENDHOG_API_KEY\""
     },
     "install": {
-      "node": "npm install ./sdks/javascript",
-      "typescript": "npm install ./sdks/javascript",
-      "python": "python -m pip install ./sdks/python",
+      "node": "npm install @sendhog/sdk",
+      "typescript": "npm install @sendhog/sdk",
+      "python": "python -m pip install sendhog-sdk",
       "curl": "No SDK installation required."
     }
   },
@@ -73,9 +73,9 @@
       "curl": "curl 'https://app.sendhog.com/v1/messages?direction=received&limit=20' \\\n  -H \"Authorization: Bearer $SENDHOG_API_KEY\""
     },
     "install": {
-      "node": "npm install ./sdks/javascript",
-      "typescript": "npm install ./sdks/javascript",
-      "python": "python -m pip install ./sdks/python",
+      "node": "npm install @sendhog/sdk",
+      "typescript": "npm install @sendhog/sdk",
+      "python": "python -m pip install sendhog-sdk",
       "curl": "No SDK installation required."
     }
   },
@@ -93,9 +93,9 @@
       "curl": "curl 'https://app.sendhog.com/v1/messages?direction=received&limit=20' \\\n  -H \"Authorization: Bearer $SENDHOG_API_KEY\""
     },
     "install": {
-      "node": "npm install ./sdks/javascript",
-      "typescript": "npm install ./sdks/javascript",
-      "python": "python -m pip install ./sdks/python",
+      "node": "npm install @sendhog/sdk",
+      "typescript": "npm install @sendhog/sdk",
+      "python": "python -m pip install sendhog-sdk",
       "curl": "No SDK installation required."
     }
   }

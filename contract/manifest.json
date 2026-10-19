@@ -1,6 +1,6 @@
 {
-  "sourceSha256": "ec08bc88ab20096bc1769bc71ec6d4bd3cfa7ba4e8158ac8ccd849e2e4d4b0b0",
-  "version": "0.1.0",
+  "sourceSha256": "80818f53f686f4fd2d18b4388234adb6fb963a51e7807527f28145846f5d9ad4",
+  "version": "0.2.0",
   "languages": [
     "node",
     "typescript",
@@ -15,6 +15,12 @@
     "sendgrid"
   ],
   "operations": [
+    "sendBulk",
+    "getBulk",
+    "messageEvents",
+    "createWebhook",
+    "listWebhooks",
+    "deleteWebhook",
     "send",
     "listMessages",
     "getMessage"

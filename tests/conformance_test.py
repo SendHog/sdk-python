@@ -24,6 +24,44 @@ def call(provider, client, payload):
     return client.send(payload)
 
 class Conformance(unittest.TestCase):
+    def test_bulk_events_webhooks_and_idempotency(self):
+        calls=[]
+        def transport(method,url,headers,payload):
+            calls.append((method,url,headers,payload))
+            if '/send/bulk' in url:
+                return 200,{}, {'id':'bulk-id','results':[{'to':'a@example.net','status':'accepted','id':'message-id'}]}
+            if '/events?' in url:
+                return 200,{}, {'data':[],'has_more':False,'next_cursor':None}
+            if method == 'DELETE':
+                return 200,{}, {'id':'hook-id','deleted':True}
+            return 200,{}, {'data':[]}
+        client=SendHog('fixture',transport=transport)
+        bulk={'from':'hello@example.com','template':{'id':'welcome'},'recipients':[{'to':'a@example.net','variables':{'name':'Alex'}}]}
+        self.assertEqual(client.send_bulk(bulk,idempotency_key='bulk-request')['id'],'bulk-id')
+        self.assertEqual(calls[0][2]['Idempotency-Key'],'bulk-request')
+        client.bulk.get('bulk-id')
+        client.messages.events('a/b',{'limit':5})
+        self.assertTrue(calls[2][1].endswith('/v1/messages/a%2Fb/events?limit=5'))
+        client.webhooks.list()
+        client.webhooks.delete('hook-id')
+        self.assertEqual(calls[4][0],'DELETE')
+        with self.assertRaises(ValidationError): client.send_bulk(dict(bulk,queue=True),idempotency_key='bad')
+
+    def test_standard_webhooks_signature(self):
+        import base64,hashlib,hmac,time
+        from sendhog.webhooks import verify_webhook
+        secret='whsec_'+base64.b64encode(b's'*32).decode()
+        event_id='evt_'+'a'*64
+        timestamp=str(int(time.time()))
+        event={'id':event_id,'type':'email.delivered','created_at':'2026-10-19T12:00:00Z','data':{'message_id':'m','provider_id':'p','recipients':[],'details':{}}}
+        body=json.dumps(event)
+        signature=base64.b64encode(hmac.new(b's'*32,f'{event_id}.{timestamp}.{body}'.encode(),hashlib.sha256).digest()).decode()
+        headers={'webhook-id':event_id,'webhook-timestamp':timestamp,'webhook-signature':'v1,'+signature}
+        self.assertEqual(verify_webhook(body,headers,secret),event)
+        self.assertEqual(SendHog('fixture').webhooks.verify(body.encode(),headers,secret),event)
+        with self.assertRaises(ValueError): verify_webhook(body+' ',headers,secret)
+        with self.assertRaises(ValueError): verify_webhook(body,dict(headers,**{'webhook-timestamp':'1'}),secret)
+
     def test_published_templates_preserve_selector_and_variables(self):
         message={'from':'hello@example.com','to':'you@example.net','reply_to':'reply@example.com','template':{'id':'welcome','version':1,'variables':{'name':'Gabe','count':3}}}
         for provider in [p for p in MANIFEST['providers'] if p['id'] in ('sendhog','resend')]:
