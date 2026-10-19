@@ -4,21 +4,23 @@
   "title": "SendHog public SDK models",
   "$defs": {
     "SendOptions": {"type":"object","additionalProperties":false,"properties":{"idempotencyKey":{"type":"string","pattern":"^[A-Za-z0-9._:-]{1,128}$"}}},
-    "BulkRecipient": {"type":"object","additionalProperties":false,"required":["to"],"properties":{"to":{"$ref":"#/$defs/Mailbox"},"variables":{"$ref":"#/$defs/TemplateVariables"}}},
-    "BulkSendRequest": {"type":"object","additionalProperties":false,"required":["from","template","recipients"],"properties":{"from":{"$ref":"#/$defs/Mailbox"},"replyTo":{"$ref":"#/$defs/ReplyTo"},"subject":{"type":"string","maxLength":1000},"template":{"$ref":"#/$defs/TemplateReference"},"recipients":{"type":"array","minItems":1,"maxItems":50,"items":{"$ref":"#/$defs/BulkRecipient"}}}},
+    "BulkRecipient": {"type":"object","additionalProperties":false,"required":["to"],"properties":{"to":{"$ref":"#/$defs/Mailbox","description":"Address that receives this individual message."},"variables":{"$ref":"#/$defs/TemplateVariables","description":"Personal values for this recipient; override matching shared template values."}}},
+    "BulkSendRequest": {"type":"object","additionalProperties":false,"required":["from","template","recipients"],"properties":{"from":{"$ref":"#/$defs/Mailbox","description":"Sender address on the API key's verified domain."},"replyTo":{"$ref":"#/$defs/ReplyTo","description":"Addresses that should receive replies."},"subject":{"type":"string","maxLength":1000,"description":"Optional subject override for the published template."},"template":{"$ref":"#/$defs/TemplateReference","description":"Published template and values shared by every recipient."},"recipients":{"type":"array","minItems":1,"maxItems":50,"description":"One entry per personalized message. Recipients do not see each other's addresses.","items":{"$ref":"#/$defs/BulkRecipient"}}}},
     "BulkSendPythonRequest": {"type":"object","additionalProperties":false,"required":["from","template","recipients"],"properties":{"from":{"$ref":"#/$defs/Mailbox"},"reply_to":{"$ref":"#/$defs/ReplyTo"},"subject":{"type":"string","maxLength":1000},"template":{"$ref":"#/$defs/TemplateReference"},"recipients":{"type":"array","minItems":1,"maxItems":50,"items":{"$ref":"#/$defs/BulkRecipient"}}}},
-    "BulkResult": {"type":"object","additionalProperties":false,"required":["to","status"],"properties":{"to":{"$ref":"#/$defs/Mailbox"},"id":{"type":"string"},"status":{"enum":["accepted","rejected","unknown","not_sent"]},"error":{"type":"object","additionalProperties":false,"required":["code","message"],"properties":{"code":{"type":"string"},"message":{"type":"string"}}}}},
-    "BulkSendResponse": {"type":"object","additionalProperties":false,"required":["id","results"],"properties":{"id":{"type":"string"},"results":{"type":"array","minItems":1,"maxItems":50,"items":{"$ref":"#/$defs/BulkResult"}}}},
+    "BulkResult": {"type":"object","additionalProperties":false,"required":["to","status"],"properties":{"to":{"$ref":"#/$defs/Mailbox","description":"Recipient for this result."},"id":{"type":"string","description":"Message ID, when a message was accepted."},"status":{"enum":["accepted","rejected","unknown","not_sent"],"description":"SES acceptance outcome, not inbox delivery. Do not blindly retry unknown outcomes. While processing, not_sent may mean not attempted yet."},"error":{"type":"object","description":"Failure information when available.","additionalProperties":false,"required":["code","message"],"properties":{"code":{"type":"string","description":"Machine-readable failure code."},"message":{"type":"string","description":"Human-readable explanation."}}}}},
+    "BulkSendResponse": {"type":"object","additionalProperties":false,"required":["id","results"],"properties":{"id":{"type":"string","description":"Bulk operation ID. Use it to inspect results without sending again."},"results":{"type":"array","minItems":1,"maxItems":50,"description":"Individual outcomes in the same order as the submitted recipients.","items":{"$ref":"#/$defs/BulkResult"}}}},
     "EmailEventType": {"enum":["email.sent","email.delivered","email.bounced","email.complained","email.rejected","email.delayed","email.render_failed","email.opened","email.clicked","email.subscription_changed"]},
-    "EmailEvent": {"type":"object","additionalProperties":false,"required":["id","type","created_at","data"],"properties":{"id":{"type":"string"},"type":{"$ref":"#/$defs/EmailEventType"},"created_at":{"type":"string","format":"date-time"},"data":{"type":"object","additionalProperties":false,"required":["message_id","provider_id","recipients","details"],"properties":{"message_id":{"type":"string"},"provider_id":{"type":"string"},"recipients":{"type":"array","maxItems":50,"items":{"type":"string"}},"details":{"type":"object","additionalProperties":true}}}}},
-    "EventQuery": {"type":"object","additionalProperties":false,"properties":{"limit":{"type":"integer","minimum":1,"maximum":100},"after":{"type":"string","maxLength":256}}},
-    "EventList": {"type":"object","additionalProperties":false,"required":["data","has_more","next_cursor"],"properties":{"data":{"type":"array","items":{"$ref":"#/$defs/EmailEvent"}},"has_more":{"type":"boolean"},"next_cursor":{"type":["string","null"]}}},
-    "CreateWebhookRequest": {"type":"object","additionalProperties":false,"required":["url","events"],"properties":{"url":{"type":"string","format":"uri","maxLength":2048},"events":{"type":"array","minItems":1,"maxItems":10,"uniqueItems":true,"items":{"$ref":"#/$defs/EmailEventType"}}}},
-    "Webhook": {"type":"object","additionalProperties":false,"required":["id","url","events","enabled","created_at"],"properties":{"id":{"type":"string"},"url":{"type":"string"},"events":{"type":"array","items":{"$ref":"#/$defs/EmailEventType"}},"enabled":{"type":"boolean"},"created_at":{"type":"string","format":"date-time"}}},
-    "CreatedWebhook": {"type":"object","additionalProperties":false,"required":["webhook","secret"],"properties":{"webhook":{"$ref":"#/$defs/Webhook"},"secret":{"type":"string"}}},
-    "WebhookList": {"type":"object","additionalProperties":false,"required":["data"],"properties":{"data":{"type":"array","items":{"$ref":"#/$defs/Webhook"}}}},
-    "DeletedWebhook": {"type":"object","additionalProperties":false,"required":["id","deleted"],"properties":{"id":{"type":"string"},"deleted":{"const":true}}},
+    "EmailEvent": {"type":"object","additionalProperties":false,"required":["id","type","created_at","data"],"properties":{"id":{"type":"string","description":"Unique event ID. Use it to deduplicate notifications."},"type":{"$ref":"#/$defs/EmailEventType","description":"The email activity reported by this event."},"created_at":{"type":"string","format":"date-time","description":"Event timestamp."},"data":{"type":"object","description":"Message identifiers, affected recipients and provider event details.","additionalProperties":false,"required":["message_id","provider_id","recipients","details"],"properties":{"message_id":{"type":"string","description":"SendHog message ID."},"provider_id":{"type":"string","description":"SES message ID."},"recipients":{"type":"array","maxItems":50,"description":"Addresses associated with this event.","items":{"type":"string"}},"details":{"type":"object","description":"Provider-specific event details. Fields depend on the event type.","additionalProperties":true}}}}},
+    "EventQuery": {"type":"object","additionalProperties":false,"properties":{"limit":{"type":"integer","minimum":1,"maximum":100,"description":"Maximum number of events to return in this page."},"after":{"type":"string","maxLength":256,"description":"Cursor from the previous page's next_cursor. Omit for the first page."}}},
+    "EventList": {"type":"object","additionalProperties":false,"required":["data","has_more","next_cursor"],"properties":{"data":{"type":"array","description":"Retained events, newest observed first.","items":{"$ref":"#/$defs/EmailEvent"}},"has_more":{"type":"boolean","description":"Whether additional events are available."},"next_cursor":{"type":["string","null"],"description":"Pass as after to read the next page; null at the end."}}},
+    "CreateWebhookRequest": {"type":"object","additionalProperties":false,"required":["url","events"],"properties":{"url":{"type":"string","format":"uri","maxLength":2048,"description":"Public HTTPS endpoint that receives signed SendHog event notifications."},"events":{"type":"array","minItems":1,"maxItems":10,"uniqueItems":true,"description":"Event types this endpoint should receive.","items":{"$ref":"#/$defs/EmailEventType"}}}},
+    "Webhook": {"type":"object","additionalProperties":false,"required":["id","url","events","enabled","created_at"],"properties":{"id":{"type":"string","description":"Webhook registration ID."},"url":{"type":"string","description":"Registered notification endpoint."},"events":{"type":"array","description":"Subscribed event types.","items":{"$ref":"#/$defs/EmailEventType"}},"enabled":{"type":"boolean","description":"Whether notifications are enabled for this endpoint."},"created_at":{"type":"string","format":"date-time","description":"Time the webhook was registered."}}},
+    "CreatedWebhook": {"type":"object","additionalProperties":false,"required":["webhook","secret"],"properties":{"webhook":{"$ref":"#/$defs/Webhook","description":"The registered webhook."},"secret":{"type":"string","description":"Signing secret, returned only once. Store securely to verify incoming notifications; never log it."}}},
+    "WebhookList": {"type":"object","additionalProperties":false,"required":["data"],"properties":{"data":{"type":"array","description":"Domain-owned webhook registrations, including disabled endpoints. Signing secrets are not included.","items":{"$ref":"#/$defs/Webhook"}}}},
+    "DeletedWebhook": {"type":"object","additionalProperties":false,"required":["id","deleted"],"properties":{"id":{"type":"string","description":"ID of the deleted webhook."},"deleted":{"const":true,"description":"Confirms deletion and cancellation of pending notification deliveries."}}},
     "ResolvedSendRequest": {
+      "title": "Inline email",
+      "description": "Provide at least one recipient in to, cc or bcc, and a plain-text or HTML body. Maximum 50 recipients total across all three fields.",
       "type": "object",
       "additionalProperties": false,
       "required": ["from", "subject"],
@@ -33,14 +35,14 @@
         { "anyOf": [{ "required": ["text"] }, { "required": ["html"] }] }
       ],
       "properties": {
-        "from": { "$ref": "#/$defs/Mailbox" },
-        "to": { "$ref": "#/$defs/AddressOrList" },
-        "cc": { "$ref": "#/$defs/AddressOrList" },
-        "bcc": { "$ref": "#/$defs/AddressOrList" },
-        "replyTo": { "$ref": "#/$defs/ReplyTo" },
-        "subject": { "type": "string", "maxLength": 100000 },
-        "text": { "type": "string", "maxLength": 100000 },
-        "html": { "type": "string", "maxLength": 100000 }
+        "from": { "$ref": "#/$defs/Mailbox", "description": "Sender address on the API key's verified domain. Accepts an address or Name <address>." },
+        "to": { "$ref": "#/$defs/AddressOrList", "description": "Primary recipients. Provide one address or an array of addresses." },
+        "cc": { "$ref": "#/$defs/AddressOrList", "description": "Carbon-copy recipients, visible to other recipients." },
+        "bcc": { "$ref": "#/$defs/AddressOrList", "description": "Blind-copy recipients, hidden from other recipients." },
+        "replyTo": { "$ref": "#/$defs/ReplyTo", "description": "Addresses that should receive replies. One address or up to 10 addresses." },
+        "subject": { "type": "string", "maxLength": 100000, "description": "Email subject line." },
+        "text": { "type": "string", "maxLength": 100000, "description": "Plain-text message body. Required when html is not provided." },
+        "html": { "type": "string", "maxLength": 100000, "description": "HTML message body. Required when text is not provided." }
       }
     },
     "ResolvedSendPythonRequest": {
@@ -71,8 +73,8 @@
     "SendRequest": {"anyOf":[{"$ref":"#/$defs/ResolvedSendRequest"},{"$ref":"#/$defs/TemplateSendRequest"}]},
     "SendPythonRequest": {"anyOf":[{"$ref":"#/$defs/ResolvedSendPythonRequest"},{"$ref":"#/$defs/TemplateSendPythonRequest"}]},
     "TemplateVariables": {"type":"object","maxProperties":50,"propertyNames":{"pattern":"^[A-Za-z][A-Za-z0-9_]{0,49}$"},"additionalProperties":{"anyOf":[{"type":"string","maxLength":2000},{"type":"number","minimum":-9007199254740991,"maximum":9007199254740991},{"type":"boolean"}]}},
-    "TemplateReference": {"type":"object","additionalProperties":false,"required":["id"],"properties":{"id":{"type":"string","pattern":"^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$"},"version":{"type":"integer","minimum":1},"variables":{"$ref":"#/$defs/TemplateVariables"}}},
-    "TemplateSendRequest": {"type":"object","additionalProperties":false,"required":["from","template"],"allOf":[{"anyOf":[{"required":["to"]},{"required":["cc"]},{"required":["bcc"]}]}],"properties":{"from":{"$ref":"#/$defs/Mailbox"},"to":{"$ref":"#/$defs/AddressOrList"},"cc":{"$ref":"#/$defs/AddressOrList"},"bcc":{"$ref":"#/$defs/AddressOrList"},"replyTo":{"$ref":"#/$defs/ReplyTo"},"subject":{"type":"string","maxLength":1000},"template":{"$ref":"#/$defs/TemplateReference"}}},
+    "TemplateReference": {"type":"object","additionalProperties":false,"required":["id"],"properties":{"id":{"type":"string","pattern":"^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$","description":"ID or slug of a published template in this domain."},"version":{"type":"integer","minimum":1,"description":"Specific published version. Omit to use the current published version."},"variables":{"$ref":"#/$defs/TemplateVariables","description":"Named values to substitute into the template."}}},
+    "TemplateSendRequest": {"title":"Template email","description":"Send using a published domain template instead of inline text or HTML. Provide at least one recipient in to, cc or bcc.","type":"object","additionalProperties":false,"required":["from","template"],"allOf":[{"anyOf":[{"required":["to"]},{"required":["cc"]},{"required":["bcc"]}]}],"properties":{"from":{"$ref":"#/$defs/Mailbox","description":"Sender address on the API key's verified domain."},"to":{"$ref":"#/$defs/AddressOrList","description":"Primary recipient address or addresses."},"cc":{"$ref":"#/$defs/AddressOrList","description":"Visible carbon-copy recipients."},"bcc":{"$ref":"#/$defs/AddressOrList","description":"Hidden blind-copy recipients."},"replyTo":{"$ref":"#/$defs/ReplyTo","description":"Addresses that should receive replies."},"subject":{"type":"string","maxLength":1000,"description":"Optional subject override for the template."},"template":{"$ref":"#/$defs/TemplateReference","description":"Published template reference and substitution values."}}},
     "TemplateSendPythonRequest": {"type":"object","additionalProperties":false,"required":["from","template"],"allOf":[{"anyOf":[{"required":["to"]},{"required":["cc"]},{"required":["bcc"]}]}],"properties":{"from":{"$ref":"#/$defs/Mailbox"},"to":{"$ref":"#/$defs/AddressOrList"},"cc":{"$ref":"#/$defs/AddressOrList"},"bcc":{"$ref":"#/$defs/AddressOrList"},"reply_to":{"$ref":"#/$defs/ReplyTo"},"subject":{"type":"string","maxLength":1000},"template":{"$ref":"#/$defs/TemplateReference"}}},
     "ReplyTo": {
       "anyOf": [
@@ -164,8 +166,8 @@
       "additionalProperties": false,
       "required": ["id", "created_at"],
       "properties": {
-        "id": { "type": "string", "minLength": 1 },
-        "created_at": { "type": "string", "format": "date-time" }
+        "id": { "type": "string", "minLength": 1, "description": "SendHog message ID, returned after SES acceptance. Acceptance does not guarantee inbox delivery." },
+        "created_at": { "type": "string", "format": "date-time", "description": "Time the message was created." }
       }
     },
     "SesPythonSendResponse": {
@@ -431,17 +433,18 @@
         "text"
       ],
       "properties": {
-        "id": { "type": "string", "minLength": 1 },
-        "domain_id": { "type": "string", "minLength": 1 },
-        "direction": { "enum": ["sent", "received"] },
-        "from": { "type": "string" },
-        "to": { "type": "array", "items": { "type": "string" } },
-        "subject": { "type": "string" },
+        "id": { "type": "string", "minLength": 1, "description": "SendHog message ID." },
+        "domain_id": { "type": "string", "minLength": 1, "description": "Domain that owns this saved message." },
+        "direction": { "enum": ["sent", "received"], "description": "Whether this is a sent or received message. Receiving activation is separate." },
+        "from": { "type": "string", "description": "Sender address." },
+        "to": { "type": "array", "items": { "type": "string" }, "description": "Recipient addresses saved with this message." },
+        "subject": { "type": "string", "description": "Saved email subject line." },
         "status": {
+          "description": "Current summary status. Use the events endpoint for retained event history.",
           "enum": ["accepted", "delivered", "received", "bounced", "complained", "failed"]
         },
-        "created_at": { "type": "string", "format": "date-time" },
-        "text": { "type": ["string", "null"] }
+        "created_at": { "type": "string", "format": "date-time", "description": "Time the message was saved." },
+        "text": { "type": ["string", "null"], "description": "Retained plain-text body, or null when unavailable." }
       }
     },
     "MessageList": {
@@ -449,18 +452,18 @@
       "additionalProperties": false,
       "required": ["data", "has_more", "next_cursor"],
       "properties": {
-        "data": { "type": "array", "items": { "$ref": "#/$defs/Message" } },
-        "has_more": { "type": "boolean" },
-        "next_cursor": { "type": ["string", "null"] }
+        "data": { "type": "array", "items": { "$ref": "#/$defs/Message" }, "description": "Messages in this page, scoped to the API key's domain." },
+        "has_more": { "type": "boolean", "description": "Whether additional messages are available." },
+        "next_cursor": { "type": ["string", "null"], "description": "Pass as after to read the next page; null at the end." }
       }
     },
     "ListMessagesQuery": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "limit": { "type": "integer", "minimum": 1, "maximum": 100 },
-        "after": { "type": "string", "minLength": 1, "maxLength": 512 },
-        "direction": { "enum": ["sent", "received"] }
+        "limit": { "type": "integer", "minimum": 1, "maximum": 100, "description": "Maximum number of messages to return in this page." },
+        "after": { "type": "string", "minLength": 1, "maxLength": 512, "description": "Cursor from the previous page's next_cursor. Omit for the first page." },
+        "direction": { "enum": ["sent", "received"], "description": "Filter by message direction." }
       }
     },
     "ApiError": {
@@ -469,13 +472,14 @@
       "required": ["error"],
       "properties": {
         "error": {
+          "description": "Details about why the request failed.",
           "type": "object",
           "additionalProperties": false,
           "required": ["code", "message", "request_id"],
           "properties": {
-            "code": { "type": "string", "minLength": 1 },
-            "message": { "type": "string" },
-            "request_id": { "type": "string", "minLength": 1 }
+            "code": { "type": "string", "minLength": 1, "description": "Machine-readable error code." },
+            "message": { "type": "string", "description": "Human-readable explanation of the failure." },
+            "request_id": { "type": "string", "minLength": 1, "description": "Request identifier to include when contacting support." }
           }
         }
       }
