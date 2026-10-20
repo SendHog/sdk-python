@@ -3,7 +3,7 @@
   "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
   "info": {
     "title": "SendHog public API",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "SendHog public API and provider-shaped SDK subset. Own bearer authentication; not upstream wire/auth emulation. Sending remains operationally gated."
   },
   "servers": [
@@ -171,6 +171,49 @@
               "type": "string",
               "maxLength": 256,
               "description": "Cursor from the previous page's next_cursor. Omit for the first page."
+            }
+          }
+        ]
+      }
+    },
+    "/v1/messages/{id}/raw": {
+      "get": {
+        "operationId": "getRawMessage",
+        "summary": "Download the retained original inbound email including attachments. Native HTTP streaming download, not a JSON SDK method.",
+        "x-availability": "implemented",
+        "x-scope": "email.read",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "message/rfc822": {
+                "schema": {
+                  "$ref": "#/components/schemas/RawMessage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Structured public API error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "SendHog message ID belonging to the API key’s domain.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
             }
           }
         ]
@@ -634,7 +677,8 @@
           "email.render_failed",
           "email.opened",
           "email.clicked",
-          "email.subscription_changed"
+          "email.subscription_changed",
+          "email.received"
         ]
       },
       "EmailEvent": {
@@ -649,7 +693,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "Unique event ID. Use it to deduplicate notifications."
+            "description": "Unique event ID. Use it to deduplicate inbound and delivery notifications alike."
           },
           "type": {
             "$ref": "#/components/schemas/EmailEventType",
@@ -662,7 +706,7 @@
           },
           "data": {
             "type": "object",
-            "description": "Message identifiers, affected recipients and provider event details.",
+            "description": "Message identifiers, domain-owned recipients and event-specific metadata. Received email bodies and attachments are fetched separately.",
             "additionalProperties": false,
             "required": [
               "message_id",
@@ -673,23 +717,23 @@
             "properties": {
               "message_id": {
                 "type": "string",
-                "description": "SendHog message ID."
+                "description": "SendHog message ID; use messages.get for retained text or native GET /v1/messages/{id}/raw for a complete received email."
               },
               "provider_id": {
                 "type": "string",
-                "description": "SES message ID."
+                "description": "Transport reference: SES message ID for outbound events; SendHog SMTP receipt ID for email.received."
               },
               "recipients": {
                 "type": "array",
                 "maxItems": 50,
-                "description": "Addresses associated with this event.",
+                "description": "Domain-owned envelope recipients associated with this event. A received event contains only its single receipt recipient.",
                 "items": {
                   "type": "string"
                 }
               },
               "details": {
                 "type": "object",
-                "description": "Provider-specific event details. Fields depend on the event type.",
+                "description": "Fields depend on type. email.received includes from, subject, header_message_id (nullable RFC Message-ID), raw_path and authentication signals; no body, attachments or storage credentials. Delivery events preserve provider-specific metadata.",
                 "additionalProperties": true
               }
             }
@@ -754,19 +798,24 @@
             "type": "string",
             "format": "uri",
             "maxLength": 2048,
-            "description": "Public HTTPS endpoint that receives signed SendHog event notifications."
+            "description": "Public HTTPS endpoint that receives signed SendHog inbound and delivery-event notifications."
           },
           "events": {
             "type": "array",
             "minItems": 1,
-            "maxItems": 10,
+            "maxItems": 11,
             "uniqueItems": true,
-            "description": "Event types this endpoint should receive.",
+            "description": "Event types for this same endpoint. Opt into email.received alongside bounces, deliveries and other events.",
             "items": {
               "$ref": "#/components/schemas/EmailEventType"
             }
           }
         }
+      },
+      "RawMessage": {
+        "type": "string",
+        "format": "binary",
+        "description": "Retained original RFC822/MIME bytes including headers, bodies and attachments. Native HTTP streaming download; requires email.read. Not JSON or a presigned URL. Missing or foreign originals return404."
       },
       "Webhook": {
         "type": "object",

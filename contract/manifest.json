@@ -1,6 +1,6 @@
 {
-  "sourceSha256": "fe1c439d68bde2f971b42750dceb367edf44ef1fa8aa84a553690fd6301c0bb3",
-  "version": "0.2.0",
+  "sourceSha256": "b20bebc549754d13919ba25471467bbdfc48ee7d5c5134fe9b8545e50d3ffb53",
+  "version": "0.3.0",
   "languages": [
     "node",
     "typescript",
@@ -18,6 +18,7 @@
     "sendBulk",
     "getBulk",
     "messageEvents",
+    "getRawMessage",
     "createWebhook",
     "listWebhooks",
     "deleteWebhook",

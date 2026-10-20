@@ -24,6 +24,27 @@ def call(provider, client, payload):
     return client.send(payload)
 
 class Conformance(unittest.TestCase):
+    def test_unified_receiving_subscription_and_signature(self):
+        import base64, hashlib, hmac, time
+        events = ['email.received', 'email.bounced', 'email.delivered']
+        secret = 'whsec_' + base64.b64encode(b's'*32).decode()
+        calls = []
+        def transport(method, url, headers, body):
+            calls.append(url)
+            self.assertEqual(url, 'https://app.sendhog.com/v1/webhooks')
+            self.assertEqual(body['events'], events)
+            return 200, {}, {'webhook': {'id': 'unified-hook', 'url': body['url'], 'events': events, 'enabled': True, 'created_at': '2026-10-20T12:00:00Z'}, 'secret': secret}
+        client = SendHog('fixture', transport=transport)
+        self.assertEqual(client.webhooks.create({'url': 'https://example.com/hook', 'events': events})['webhook']['events'], events)
+        event_id = 'evt_' + 'b'*64
+        event = {'id': event_id, 'type': 'email.received', 'created_at': '2026-10-20T12:00:00Z', 'data': {'message_id': 'in_fixture', 'provider_id': 'in_fixture', 'recipients': ['hello@example.com'], 'details': {}}}
+        body = json.dumps(event)
+        timestamp = str(int(time.time()))
+        signature = base64.b64encode(hmac.new(b's'*32, f'{event_id}.{timestamp}.{body}'.encode(), hashlib.sha256).digest()).decode()
+        headers = {'webhook-id': event_id, 'webhook-timestamp': timestamp, 'webhook-signature': 'v1,' + signature}
+        self.assertEqual(client.webhooks.verify(body, headers, secret), event)
+        self.assertEqual(len(calls), 1)
+
     def test_bulk_events_webhooks_and_idempotency(self):
         calls=[]
         def transport(method,url,headers,payload):

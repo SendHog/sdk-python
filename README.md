@@ -1,5 +1,10 @@
 # SendHog Python SDK
 
+Version0.3.0 adds `email.received` to the existing signed webhook/event contract.
+One endpoint can receive inbound mail, bounces, deliveries and other email events.
+Existing subscriptions are unchanged until you opt in. Enable receiving/MX for
+your domain separately: https://sendhog.com/docs/receiving/.
+
 Send transactional email through [SendHog](https://sendhog.com) with a domain-scoped
 API key. Native API plus SES-, Postmark-, Resend- and SendGrid-shaped migration
 clients, all using SendHog authentication and the same transport.
@@ -74,7 +79,8 @@ No automatic send retries; inspect failures before resubmitting an email.
 All use **SendHog** API keys/endpoints, not upstream credentials or SigV4. Supported
 subset: text/HTML, up to 50 total recipients, cc/bcc/reply-to (native `reply_to`);
 native/Resend-style requests also support published SendHog templates. No raw MIME,
-attachments, batch, scheduling, tracking or complete upstream SDK compatibility.
+outbound attachments, provider batch APIs, scheduling, tracking or complete upstream
+SDK compatibility. Native `send_bulk` is supported as described below.
 [Documentation](https://sendhog.com/docs/sdks/).
 
 ## Source and development
@@ -114,3 +120,23 @@ metadata and a one-time secret; keep it securely. Verify exact raw bodies using
 
 Email acceptance is not recipient delivery. No customer email queue flag exists.
 See https://sendhog.com/docs/templates/ and https://sendhog.com/docs/webhooks/.
+
+## Unified received-email webhooks (0.3.0)
+
+```python
+result = client.webhooks.create({
+    'url': 'https://example.com/webhooks/sendhog',
+    'events': ['email.received', 'email.bounced', 'email.delivered'],
+})
+# Save result['secret'] securely; it is returned only once. Never log it.
+```
+
+Requires `webhooks.manage`. Verify exact raw bodies with
+`client.webhooks.verify(raw_body, headers, secret)` or `sendhog.verify_webhook` and
+deduplicate the event ID before processing. All eleven types share the same signer,
+envelope and retry policy. Received events contain metadata; use
+`client.messages.get(event['data']['message_id'])` with `email.read` for retained
+text. Native HTTP `GET /v1/messages/{id}/raw` streams the original MIME including
+attachments with that read scope; no provider SDK binary method is implied.
+Webhook retries never resend email. Upgrade older SDK0.2 validators before
+subscribing to email.received. Existing send/delivery-event behavior is preserved.

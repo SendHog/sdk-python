@@ -6,11 +6,12 @@ BulkSendRequest = TypedDict("BulkSendRequest", {"from": Required["Mailbox"], "re
 BulkSendPythonRequest = TypedDict("BulkSendPythonRequest", {"from": Required["Mailbox"], "reply_to": NotRequired["ReplyTo"], "subject": NotRequired[str], "template": Required["TemplateReference"], "recipients": Required[list["BulkRecipient"]]}, total=False)
 BulkResult = TypedDict("BulkResult", {"to": Required["Mailbox"], "id": NotRequired[str], "status": Required[Literal["accepted", "rejected", "unknown", "not_sent"]], "error": NotRequired[dict[str, Any]]}, total=False)
 BulkSendResponse = TypedDict("BulkSendResponse", {"id": Required[str], "results": Required[list["BulkResult"]]}, total=False)
-EmailEventType = Literal["email.sent", "email.delivered", "email.bounced", "email.complained", "email.rejected", "email.delayed", "email.render_failed", "email.opened", "email.clicked", "email.subscription_changed"]
+EmailEventType = Literal["email.sent", "email.delivered", "email.bounced", "email.complained", "email.rejected", "email.delayed", "email.render_failed", "email.opened", "email.clicked", "email.subscription_changed", "email.received"]
 EmailEvent = TypedDict("EmailEvent", {"id": Required[str], "type": Required["EmailEventType"], "created_at": Required[str], "data": Required[dict[str, Any]]}, total=False)
 EventQuery = TypedDict("EventQuery", {"limit": NotRequired[int], "after": NotRequired[str]}, total=False)
 EventList = TypedDict("EventList", {"data": Required[list["EmailEvent"]], "has_more": Required[bool], "next_cursor": Required[Union[str, None]]}, total=False)
 CreateWebhookRequest = TypedDict("CreateWebhookRequest", {"url": Required[str], "events": Required[list["EmailEventType"]]}, total=False)
+RawMessage = str
 Webhook = TypedDict("Webhook", {"id": Required[str], "url": Required[str], "events": Required[list["EmailEventType"]], "enabled": Required[bool], "created_at": Required[str]}, total=False)
 CreatedWebhook = TypedDict("CreatedWebhook", {"webhook": Required["Webhook"], "secret": Required[str]}, total=False)
 WebhookList = TypedDict("WebhookList", {"data": Required[list["Webhook"]]}, total=False)
